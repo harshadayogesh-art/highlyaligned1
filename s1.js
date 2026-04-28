@@ -1,0 +1,1 @@
+const fs=require('fs');fs.appendFileSync('src/lib/utils/gst-utils.ts','  {code:"01",name:"Jammu and Kashmir"},\n');

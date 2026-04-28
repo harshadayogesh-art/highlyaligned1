@@ -1,0 +1,22 @@
+﻿const fs = require('fs');
+const content = `'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { useCartStore } from '@/stores/cart-store'
+import { useAuth } from '@/hooks/use-auth'
+import { createClient } from '@/lib/supabase/client'
+import { toast } from 'sonner'
+import { ShoppingBag, Loader2 } from 'lucide-react'
+
+const STATES = [
+  'Andhra Pradesh',
+]
+`;
+fs.writeFileSync('src/app/(store)/checkout/page.tsx', content);

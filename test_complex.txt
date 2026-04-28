@@ -1,0 +1,4 @@
+export const INDIAN_STATES = [
+  { code: '01', name: 'Jammu and Kashmir' },
+  { code: '02', name: 'Himachal Pradesh' },
+];

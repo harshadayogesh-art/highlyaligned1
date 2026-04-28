@@ -1,0 +1,74 @@
+[
+  {
+    "num": 1,
+    "name": "Admin login",
+    "status": "✅",
+    "notes": "Passed successfully."
+  },
+  {
+    "num": 2,
+    "name": "Add product",
+    "status": "✅",
+    "notes": "Passed successfully."
+  },
+  {
+    "num": 3,
+    "name": "Admin Services",
+    "status": "✅",
+    "notes": "Passed successfully."
+  },
+  {
+    "num": 4,
+    "name": "Product in shop",
+    "status": "✅",
+    "notes": "Passed successfully."
+  },
+  {
+    "num": 5,
+    "name": "Checkout + Razorpay",
+    "status": "✅",
+    "notes": "Passed successfully."
+  },
+  {
+    "num": 6,
+    "name": "Order pipeline",
+    "status": "✅",
+    "notes": "Passed successfully."
+  },
+  {
+    "num": 7,
+    "name": "Book service",
+    "status": "✅",
+    "notes": "Passed successfully."
+  },
+  {
+    "num": 8,
+    "name": "Booking confirmation",
+    "status": "✅",
+    "notes": "Passed successfully."
+  },
+  {
+    "num": 9,
+    "name": "Admin confirms + meet link",
+    "status": "✅",
+    "notes": "Passed successfully."
+  },
+  {
+    "num": 10,
+    "name": "Customer My Bookings",
+    "status": "✅",
+    "notes": "Passed successfully."
+  },
+  {
+    "num": 11,
+    "name": "Lead magnet flow",
+    "status": "✅",
+    "notes": "Passed successfully."
+  },
+  {
+    "num": 12,
+    "name": "Admin lead inbox",
+    "status": "✅",
+    "notes": "Passed successfully."
+  }
+]

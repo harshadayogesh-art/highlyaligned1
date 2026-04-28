@@ -1,0 +1,4 @@
+export const X = [
+  { code: '01', name: 'Test' },
+  { code: '02', name: 'Test2' },
+];

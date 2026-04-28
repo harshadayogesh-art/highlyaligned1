@@ -1,0 +1,13 @@
+export const INDIAN_STATES = [
+  { code: '01', name: 'Jammu and Kashmir' },
+  { code: '02', name: 'Himachal Pradesh' },
+  { code: '03', name: 'Punjab' },
+  { code: '04', name: 'Chandigarh' },
+  { code: '05', name: 'Uttarakhand' },
+  { code: '06', name: 'Haryana' },
+  { code: '07', name: 'Delhi' },
+  { code: '08', name: 'Rajasthan' },
+  { code: '09', name: 'Uttar Pradesh' },
+  { code: '10', name: 'Bihar' },
+  { code: '11', name: 'Sikkim' },
+];
