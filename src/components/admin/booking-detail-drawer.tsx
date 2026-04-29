@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import { useBooking, useUpdateBookingStatus } from '@/hooks/use-bookings'
+import { useAvailableSlots } from '@/hooks/use-available-slots'
 import { useCreateRemedy } from '@/hooks/use-remedies'
 import {
   Dialog,
@@ -39,6 +40,7 @@ import {
   StickyNote,
   Link as LinkIcon,
   AlertCircle,
+  CalendarClock,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -112,9 +114,31 @@ export function BookingDetailDrawer({ bookingId, open, onOpenChange }: BookingDe
   const [meetLink, setMeetLink] = useState('')
   const [sessionNotes, setSessionNotes] = useState('')
   const [remedyOpen, setRemedyOpen] = useState(false)
+  const [rescheduleOpen, setRescheduleOpen] = useState(false)
+  const [rescheduleDate, setRescheduleDate] = useState('')
+  const [rescheduleTime, setRescheduleTime] = useState('')
   const [remedyForm, setRemedyForm] = useState({
     title: '', description: '', duration_days: 21, frequency: 'Daily', instructions: '', attachment_url: '',
   })
+
+  const { data: slots } = useAvailableSlots(rescheduleDate, booking?.service_id || '')
+
+  const handleReschedule = () => {
+    if (!booking || !rescheduleDate || !rescheduleTime) return
+    updateStatus.mutate(
+      {
+        bookingId: booking.id,
+        updates: { date: rescheduleDate, time_slot: rescheduleTime },
+      },
+      {
+        onSuccess: () => {
+          setRescheduleOpen(false)
+          setRescheduleDate('')
+          setRescheduleTime('')
+        },
+      }
+    )
+  }
 
   const actions = booking ? statusActions[booking.status] || [] : []
 
@@ -189,6 +213,22 @@ export function BookingDetailDrawer({ bookingId, open, onOpenChange }: BookingDe
                     </Button>
                   ))}
                 </div>
+              )}
+
+              {/* Reschedule */}
+              {booking.status !== 'cancelled' && booking.status !== 'completed' && (
+                <Button
+                  size='sm'
+                  variant='outline'
+                  className='text-xs h-8 gap-1.5'
+                  onClick={() => {
+                    setRescheduleDate(booking.date)
+                    setRescheduleTime(booking.time_slot)
+                    setRescheduleOpen(true)
+                  }}
+                >
+                  <CalendarClock className='h-3.5 w-3.5' /> Reschedule
+                </Button>
               )}
 
               {/* Service */}
@@ -344,6 +384,67 @@ export function BookingDetailDrawer({ bookingId, open, onOpenChange }: BookingDe
           </div>
         )}
       </SheetContent>
+
+      {/* Reschedule Dialog */}
+      <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
+        <DialogContent className='max-w-md'>
+          <DialogHeader><DialogTitle>Reschedule Booking</DialogTitle></DialogHeader>
+          <div className='space-y-4 pt-2'>
+            <div className='space-y-1.5'>
+              <Label>New Date</Label>
+              <Input
+                type='date'
+                value={rescheduleDate}
+                min={new Date().toISOString().split('T')[0]}
+                onChange={(e) => {
+                  setRescheduleDate(e.target.value)
+                  setRescheduleTime('')
+                }}
+              />
+            </div>
+            {rescheduleDate && slots && (
+              <div className='space-y-1.5'>
+                <Label>New Time Slot</Label>
+                {slots.length === 0 ? (
+                  <p className='text-sm text-slate-500 bg-slate-50 rounded-lg p-3'>No slots available for this date.</p>
+                ) : (
+                  <div className='grid grid-cols-3 gap-2'>
+                    {slots.map((slot) => (
+                      <button
+                        key={slot.time}
+                        type='button'
+                        disabled={!slot.available}
+                        onClick={() => setRescheduleTime(slot.time)}
+                        className={`text-xs py-2 rounded-lg border transition-colors ${
+                          rescheduleTime === slot.time
+                            ? 'border-[#f59e0b] bg-amber-50 text-slate-900 font-medium'
+                            : slot.available
+                            ? 'border-slate-200 hover:border-slate-300'
+                            : 'border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed'
+                        }`}
+                      >
+                        {slot.time}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            <div className='flex justify-end gap-2 pt-2'>
+              <Button variant='outline' size='sm' onClick={() => setRescheduleOpen(false)}>Cancel</Button>
+              <Button
+                size='sm'
+                className='bg-[#f59e0b] text-slate-900'
+                disabled={updateStatus.isPending || !rescheduleDate || !rescheduleTime}
+                onClick={handleReschedule}
+              >
+                {updateStatus.isPending ? <Loader2 className='h-3 w-3 animate-spin mr-1' /> : null}
+                Confirm Reschedule
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Remedy Dialog */}
       <Dialog open={remedyOpen} onOpenChange={setRemedyOpen}>

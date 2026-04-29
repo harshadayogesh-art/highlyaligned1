@@ -91,18 +91,18 @@ export default function CartPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => updateQty(item.productId, item.quantity - 1)}
-                      className="w-8 h-8 rounded border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50"
+                      className="w-10 h-10 rounded border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50"
                     >
-                      <Minus className="h-3 w-3" />
+                      <Minus className="h-4 w-4" />
                     </button>
-                    <span className="text-sm w-6 text-center font-medium">
+                    <span className="text-sm w-8 text-center font-medium">
                       {item.quantity}
                     </span>
                     <button
                       onClick={() => updateQty(item.productId, Math.min(item.maxStock, item.quantity + 1))}
-                      className="w-8 h-8 rounded border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50"
+                      className="w-10 h-10 rounded border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50"
                     >
-                      <Plus className="h-3 w-3" />
+                      <Plus className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
@@ -188,7 +188,7 @@ export default function CartPage() {
       </div>
 
       {/* Mobile Sticky Checkout Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 p-3 md:hidden z-40">
+      <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-slate-100 p-3 md:hidden z-40">
         <div className="flex items-center justify-between max-w-5xl mx-auto">
           <div>
             <p className="text-xs text-slate-500">Total</p>

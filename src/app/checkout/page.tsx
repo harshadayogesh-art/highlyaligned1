@@ -17,12 +17,11 @@ import { useAuth } from '@/hooks/use-auth'
 import { useSettings } from '@/hooks/use-settings'
 import { checkoutSchema, type CheckoutFormValues } from '@/schemas/checkout'
 import { calculateOrderTotals } from '@/lib/utils/order-calculations'
-import { createClient } from '@/lib/supabase/client'
 import { loadRazorpayScript, openRazorpayCheckout } from '@/lib/razorpay'
 import { triggerOrderNotification } from '@/app/actions/notifications'
 import { useValidateCoupon } from '@/hooks/use-coupons'
 import { toast } from 'sonner'
-import { CreditCard, Banknote, Tag, CheckCircle, LogIn, UserPlus, User, ShoppingBag, Loader2, MapPin, Plus } from 'lucide-react'
+import { CreditCard, Banknote, Tag, CheckCircle, LogIn, UserPlus, User, ShoppingBag, Loader2, MapPin, Plus, Info } from 'lucide-react'
 import { useAddresses, useCreateAddress } from '@/hooks/use-addresses'
 
 const INDIAN_STATES = [
@@ -124,6 +123,7 @@ export default function CheckoutPage() {
   }, [profile, setValue])
 
   const paymentMode = watch('paymentMode')
+  const isTestMode = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID?.startsWith('rzp_test_') ?? false
 
   const { subtotal, shipping, gstAmount, savings } = calculateOrderTotals(items, gstEnabled, 0)
   const discount = appliedCoupon?.discount || 0
@@ -196,7 +196,7 @@ export default function CheckoutPage() {
         return
       }
 
-      // Online payment flow (future)
+      // Online payment flow
       const loaded = await loadRazorpayScript()
       if (!loaded) {
         toast.error('Payment failed to load')
@@ -204,10 +204,9 @@ export default function CheckoutPage() {
         return
       }
 
-      const supabase = createClient()
       openRazorpayCheckout({
         orderId: data.razorpayOrderId,
-        amount: data.finalTotal,
+        amountInPaise: data.razorpayAmount ?? Math.round(data.finalTotal * 100),
         name: 'HighlyAligned',
         description: `Order ${data.orderNumber}`,
         prefill: {
@@ -216,12 +215,22 @@ export default function CheckoutPage() {
           contact: values.address.phone,
         },
         onSuccess: async (response) => {
-          await supabase.from('orders').update({
-            payment_status: 'captured',
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_order_id: response.razorpay_order_id,
-            status: 'accepted',
-          }).eq('id', data.orderId)
+          const verifyRes = await fetch('/api/razorpay/verify-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+              orderId: data.orderId,
+            }),
+          })
+          if (!verifyRes.ok) {
+            const err = await verifyRes.json().catch(() => ({ error: 'Verification failed' }))
+            toast.error(err.error || 'Payment verification failed')
+            setPlacing(false)
+            return
+          }
           clearCart()
           router.push(`/order-success?order_id=${data.orderId}`)
         },
@@ -307,6 +316,7 @@ export default function CheckoutPage() {
 
   // Checkout form
   return (
+    <>
     <div className='px-4 py-6 max-w-5xl mx-auto'>
       <div className='flex items-center justify-between mb-6'>
         <h1 className='text-2xl font-bold text-slate-900'>Checkout</h1>
@@ -326,7 +336,7 @@ export default function CheckoutPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
+      <form id='checkout-form' onSubmit={handleSubmit(onSubmit)} className='grid grid-cols-1 lg:grid-cols-2 gap-8 pb-24 md:pb-0'>
         <div className='space-y-6'>
           {/* Saved Addresses */}
           {user && savedAddresses && savedAddresses.length > 0 && (
@@ -481,14 +491,36 @@ export default function CheckoutPage() {
                 )}
               </label>
 
-              <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer opacity-60 ${paymentMode === 'online' ? 'border-[#f59e0b] bg-amber-50' : 'border-slate-200'}`}>
+              <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer ${paymentMode === 'online' ? 'border-[#f59e0b] bg-amber-50' : 'border-slate-200'}`}>
                 <input type='radio' value='online' {...register('paymentMode')} className='hidden' />
                 <CreditCard className='h-5 w-5 text-[#f59e0b]' />
                 <div className='flex-1'>
-                  <p className='font-medium text-sm'>Online Payment</p>
-                  <p className='text-xs text-slate-500'>Coming soon — Razorpay integration</p>
+                  <p className='font-medium text-sm flex items-center gap-2'>
+                    Online Payment
+                    {isTestMode && (
+                      <span className='text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium uppercase tracking-wider'>
+                        Test Mode
+                      </span>
+                    )}
+                  </p>
+                  <p className='text-xs text-slate-500'>Pay securely via Razorpay (Cards, UPI, Net Banking)</p>
                 </div>
               </label>
+
+              {paymentMode === 'online' && isTestMode && (
+                <div className='bg-blue-50 border border-blue-100 rounded-lg p-3 space-y-2'>
+                  <div className='flex items-center gap-2'>
+                    <Info className='h-4 w-4 text-blue-600 flex-shrink-0' />
+                    <p className='text-xs font-semibold text-blue-800'>Test Card Details</p>
+                  </div>
+                  <div className='text-xs text-blue-700 space-y-1 pl-6'>
+                    <p>• Card No: <span className='font-mono font-medium'>5267 3181 8797 5449</span></p>
+                    <p>• Expiry: Any future date (e.g., 12/30)</p>
+                    <p>• CVV: Any 3 digits (e.g., 123)</p>
+                    <p>• OTP: <span className='font-mono font-medium'>1234</span></p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -593,7 +625,7 @@ export default function CheckoutPage() {
             </div>
             <Button
               type='submit'
-              className='w-full bg-[#f59e0b] hover:bg-[#d97706] text-slate-900 font-semibold'
+              className='w-full bg-[#f59e0b] hover:bg-[#d97706] text-slate-900 font-semibold h-12'
               disabled={placing || (paymentMode === 'cod' && finalTotal >= 5000)}
             >
               {placing ? 'Placing Order...' : 'Place Order'}
@@ -602,5 +634,25 @@ export default function CheckoutPage() {
         </div>
       </form>
     </div>
+
+    {/* Mobile Sticky Place Order Bar */}
+    <div className='fixed bottom-16 left-0 right-0 bg-white border-t border-slate-100 p-3 md:hidden z-40'>
+      <div className='flex items-center justify-between max-w-5xl mx-auto gap-4'>
+        <div>
+          <p className='text-xs text-slate-500'>Total</p>
+          <p className='text-lg font-bold text-slate-900'>Rs.{finalTotal.toFixed(2)}</p>
+        </div>
+        <Button
+          type='submit'
+          form='checkout-form'
+          className='bg-[#f59e0b] hover:bg-[#d97706] text-slate-900 font-semibold px-8 h-12'
+          disabled={placing || (paymentMode === 'cod' && finalTotal >= 5000)}
+          onClick={handleSubmit(onSubmit)}
+        >
+          {placing ? 'Placing...' : 'Place Order'}
+        </Button>
+      </div>
+    </div>
+    </>
   )
 }

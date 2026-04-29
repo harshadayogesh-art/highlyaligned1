@@ -9,7 +9,7 @@ export default function StoreLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className="min-h-screen bg-white pb-20 md:pb-0 flex flex-col">
+    <div className="min-h-screen bg-white pb-20 md:pb-0 flex flex-col overflow-x-hidden">
       <StoreHeader />
       <main className="flex-1">{children}</main>
       <StoreFooter />

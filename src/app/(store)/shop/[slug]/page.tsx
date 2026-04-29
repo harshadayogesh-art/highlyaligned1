@@ -169,21 +169,21 @@ export default function ProductDetailPage() {
       {product.category_id && <RelatedProducts categoryId={product.category_id} excludeId={product.id} />}
 
       {/* Mobile Sticky Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 p-3 md:hidden z-40">
+      <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-slate-100 p-3 md:hidden z-40">
         <div className="flex items-center gap-3 max-w-6xl mx-auto">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setQty((q) => Math.max(1, q - 1))}
-              className="w-8 h-8 rounded border border-slate-200 flex items-center justify-center"
+              className="w-10 h-10 rounded border border-slate-200 flex items-center justify-center active:bg-slate-50"
             >
-              <Minus className="h-3 w-3" />
+              <Minus className="h-4 w-4" />
             </button>
-            <span className="w-6 text-center font-medium">{qty}</span>
+            <span className="w-8 text-center font-medium">{qty}</span>
             <button
               onClick={() => setQty((q) => Math.min(product.stock, q + 1))}
-              className="w-8 h-8 rounded border border-slate-200 flex items-center justify-center"
+              className="w-10 h-10 rounded border border-slate-200 flex items-center justify-center active:bg-slate-50"
             >
-              <Plus className="h-3 w-3" />
+              <Plus className="h-4 w-4" />
             </button>
           </div>
           <Button

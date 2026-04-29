@@ -127,4 +127,26 @@
   html {
     @apply font-sans;
   }
+  /* Prevent horizontal scroll / white-space on mobile */
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
+  }
+  /* Ensure all images respect container bounds during load */
+  img, video {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* Scrollbar hide utilities (used across the app) */
+.scrollbar-hide,
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }

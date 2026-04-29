@@ -103,6 +103,11 @@ export interface Service {
   is_active: boolean
   sort_order: number
   created_at: string
+  // Availability config
+  working_hours_start?: string | null
+  working_hours_end?: string | null
+  slot_interval_minutes?: number | null
+  blocked_dates?: string[] | null
 }
 
 export interface OrderItem {
@@ -309,9 +314,11 @@ export interface LegalPage {
   slug: string
   title: string
   content: string
+  meta_description: string
+  is_published: boolean
   last_updated: string
-  is_active: boolean
   created_at: string
+  updated_at: string
 }
 
 // ─── Pagination Response ──────────────────────────────────────────────────────

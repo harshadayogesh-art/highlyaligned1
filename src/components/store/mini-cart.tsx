@@ -86,16 +86,16 @@ export function MiniCart({ open, onOpenChange }: MiniCartProps) {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => updateQty(item.productId, item.quantity - 1)}
-                          className="w-6 h-6 rounded border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50"
+                          className="w-9 h-9 rounded border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50"
                         >
-                          <Minus className="h-3 w-3" />
+                          <Minus className="h-3.5 w-3.5" />
                         </button>
-                        <span className="text-sm w-5 text-center font-medium">{item.quantity}</span>
+                        <span className="text-sm w-6 text-center font-medium">{item.quantity}</span>
                         <button
                           onClick={() => updateQty(item.productId, item.quantity + 1)}
-                          className="w-6 h-6 rounded border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50"
+                          className="w-9 h-9 rounded border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50"
                         >
-                          <Plus className="h-3 w-3" />
+                          <Plus className="h-3.5 w-3.5" />
                         </button>
                       </div>
                       <p className="text-sm font-semibold text-slate-900">

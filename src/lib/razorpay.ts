@@ -65,7 +65,7 @@ export async function createRazorpayOrder({
 
 export function openRazorpayCheckout({
   orderId,
-  amount,
+  amountInPaise,
   name,
   description,
   prefill,
@@ -73,7 +73,7 @@ export function openRazorpayCheckout({
   onDismiss,
 }: {
   orderId: string
-  amount: number
+  amountInPaise: number
   name: string
   description: string
   prefill?: { name?: string; email?: string; contact?: string }
@@ -82,7 +82,7 @@ export function openRazorpayCheckout({
 }) {
   const options: RazorpayOptions = {
     key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-    amount: amount * 100,
+    amount: amountInPaise,
     currency: 'INR',
     name,
     description,

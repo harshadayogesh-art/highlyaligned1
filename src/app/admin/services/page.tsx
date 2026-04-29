@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form'
 import { createClient } from '@/lib/supabase/client'
 import { uploadToCloudinary } from '@/lib/cloudinary'
 import { useServices, type ServiceRow } from '@/hooks/use-services'
+import { useCategories } from '@/hooks/use-categories'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,9 +14,26 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Switch } from '@/components/ui/switch'
+import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
-import { Plus, Edit2, Trash2, X, Loader2 } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Loader2, Clock } from 'lucide-react'
 import Image from 'next/image'
+
+function CategorySelect({ value, onChange }: { value: string; onChange: (val: string | null) => void }) {
+  const { data: categories } = useCategories('service')
+  return (
+    <select
+      className="w-full h-10 border border-slate-200 rounded-lg px-3 text-sm bg-white"
+      value={value}
+      onChange={(e) => onChange(e.target.value || null)}
+    >
+      <option value="">No Category</option>
+      {categories?.map((cat) => (
+        <option key={cat.id} value={cat.id}>{cat.name}</option>
+      ))}
+    </select>
+  )
+}
 
 export default function AdminServicesPage() {
   const [modalOpen, setModalOpen] = useState(false)
@@ -39,10 +57,18 @@ export default function AdminServicesPage() {
       description: '',
       price: 0,
       duration_minutes: 60,
+      buffer_time_minutes: 15,
+      mode: ['video'],
       color_code: '#8b5cf6',
       is_active: true,
       is_featured: false,
       image_url: '',
+      category_id: null,
+      sort_order: 0,
+      working_hours_start: '10:00',
+      working_hours_end: '19:00',
+      slot_interval_minutes: 30,
+      blocked_dates: [],
     },
   })
 
@@ -56,10 +82,18 @@ export default function AdminServicesPage() {
       description: '',
       price: 0,
       duration_minutes: 60,
+      buffer_time_minutes: 15,
+      mode: ['video'],
       color_code: '#8b5cf6',
       is_active: true,
       is_featured: false,
       image_url: '',
+      category_id: null,
+      sort_order: 0,
+      working_hours_start: '10:00',
+      working_hours_end: '19:00',
+      slot_interval_minutes: 30,
+      blocked_dates: [],
     })
     setModalOpen(true)
   }
@@ -83,8 +117,8 @@ export default function AdminServicesPage() {
     mutationFn: async (values: Partial<ServiceRow>) => {
       const supabase = createClient()
       const payload = { ...values }
-      delete payload.id
-      delete payload.created_at
+      delete (payload as Record<string, unknown>).id
+      delete (payload as Record<string, unknown>).created_at
 
       if (editingId) {
         const { error } = await supabase.from('services').update(payload).eq('id', editingId)
@@ -251,6 +285,74 @@ export default function AdminServicesPage() {
               <div className="space-y-2">
                 <Label>Theme Color</Label>
                 <Input type="color" className="h-10 p-1" {...register('color_code')} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Buffer Time (mins)</Label>
+                <Input type="number" {...register('buffer_time_minutes', { valueAsNumber: true })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Sort Order</Label>
+                <Input type="number" {...register('sort_order', { valueAsNumber: true })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <CategorySelect value={watch('category_id') || ''} onChange={(v) => setValue('category_id', v || null)} />
+              </div>
+            </div>
+
+            {/* Mode */}
+            <div className="space-y-2">
+              <Label>Session Modes</Label>
+              <div className="flex flex-wrap gap-4">
+                {(['video', 'phone', 'chat', 'in_person'] as const).map((m) => (
+                  <label key={m} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={(watch('mode') || []).includes(m)}
+                      onCheckedChange={(checked) => {
+                        const current = watch('mode') || []
+                        if (checked) {
+                          setValue('mode', [...current, m])
+                        } else {
+                          setValue('mode', current.filter((x) => x !== m))
+                        }
+                      }}
+                    />
+                    <span className="capitalize">{m.replace('_', '-')}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Availability */}
+            <div className="space-y-3 pt-3 border-t">
+              <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <Clock className="h-4 w-4" /> Availability Settings
+              </h4>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Working Hours Start</Label>
+                  <Input type="time" {...register('working_hours_start')} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Working Hours End</Label>
+                  <Input type="time" {...register('working_hours_end')} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Slot Interval (mins)</Label>
+                  <select
+                    className="w-full h-10 border border-slate-200 rounded-lg px-3 text-sm"
+                    value={watch('slot_interval_minutes') || 30}
+                    onChange={(e) => setValue('slot_interval_minutes', Number(e.target.value))}
+                  >
+                    <option value={15}>15 min</option>
+                    <option value={30}>30 min</option>
+                    <option value={45}>45 min</option>
+                    <option value={60}>60 min</option>
+                  </select>
+                </div>
               </div>
             </div>
 

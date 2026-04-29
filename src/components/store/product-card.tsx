@@ -72,7 +72,7 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
         {onQuickView && (
           <button
             onClick={handleQuickView}
-            className="absolute top-2 right-2 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+            className="absolute top-2 right-2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
             aria-label="Quick view"
           >
             <Eye className="h-4 w-4 text-slate-700" />

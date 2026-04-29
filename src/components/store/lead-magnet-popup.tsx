@@ -642,16 +642,33 @@ export default function LeadMagnetPopup() {
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetContent
             side="bottom"
-            className="h-[92vh] overflow-y-auto bg-white border-t border-slate-200 p-6 !rounded-t-3xl"
+            showCloseButton={false}
+            className="h-[92vh] overflow-y-auto bg-white border-t border-slate-200 p-0 !rounded-t-3xl"
           >
-            {/* Grabber handle */}
-            <div className="flex justify-center mb-4">
-              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            {/* Sticky header with close + grabber */}
+            <div className="sticky top-0 z-10 bg-white px-6 pt-3 pb-2 border-b border-slate-100">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleDismiss}
+                    className="flex items-center gap-1 text-sm font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-full transition-colors"
+                  >
+                    <X className="h-4 w-4" /> Close
+                  </button>
+                </div>
+                {/* Grabber handle */}
+                <div className="absolute left-1/2 -translate-x-1/2 top-2">
+                  <div className="w-10 h-1 rounded-full bg-slate-300" />
+                </div>
+                <div className="w-16" />
+              </div>
             </div>
             <SheetHeader className="text-left hidden">
               <SheetTitle className="sr-only">Lead Magnet</SheetTitle>
             </SheetHeader>
-            {formContent}
+            <div className="px-6 pb-8 pt-4">
+              {formContent}
+            </div>
           </SheetContent>
         </Sheet>
       </div>

@@ -1,14 +1,55 @@
-import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import Link from 'next/link'
-import { ArrowLeft, Home, Scale } from 'lucide-react'
+-- Legal Pages Table + Seed Data
+-- Run this in Supabase SQL Editor
 
-const FALLBACK_PAGES: Record<string, { title: string; meta_description: string; content: string; last_updated: string }> = {
-  terms: {
-    title: 'Terms and Conditions',
-    meta_description: 'Terms and Conditions for HighlyAligned.in — Astrology e-commerce and services platform.',
-    last_updated: '2026-01-01',
-    content: `**Effective Date:** January 1, 2026
+-- Drop and recreate with updated schema
+DROP TABLE IF EXISTS legal_pages CASCADE;
+
+CREATE TABLE legal_pages (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  slug text NOT NULL UNIQUE,
+  title text NOT NULL,
+  content text NOT NULL DEFAULT '',
+  meta_description text NOT NULL DEFAULT '',
+  is_published boolean NOT NULL DEFAULT false,
+  last_updated date NOT NULL DEFAULT current_date,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Enable RLS
+ALTER TABLE legal_pages ENABLE ROW LEVEL SECURITY;
+
+-- Public read policy (only published pages)
+CREATE POLICY "Legal pages are viewable by everyone"
+  ON legal_pages FOR SELECT USING (true);
+
+-- Admin write policy
+CREATE POLICY "Only admins can manage legal pages"
+  ON legal_pages FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE id = auth.uid() AND role IN ('admin', 'editor')
+    )
+  );
+
+-- Auto-update updated_at trigger
+CREATE OR REPLACE FUNCTION update_legal_pages_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER legal_pages_updated_at
+  BEFORE UPDATE ON legal_pages
+  FOR EACH ROW
+  EXECUTE FUNCTION update_legal_pages_updated_at();
+
+-- Seed 4 legal pages with comprehensive content
+INSERT INTO legal_pages (slug, title, content, meta_description, is_published) VALUES
+('terms', 'Terms and Conditions',
+'**Effective Date:** January 1, 2026
 **Business Name:** HighlyAligned
 **Registered Address:** Pimpri-Chinchwad, Maharashtra, India
 **Contact:** self.aligned1111@gmail.com | +91 84688 83571
@@ -48,7 +89,7 @@ All astrology consultations, readings, and spiritual guidance provided through H
 All content, logos, designs, text, images, and software on this Platform are the exclusive property of HighlyAligned and protected under Indian copyright and trademark laws. Unauthorized use, reproduction, or distribution is strictly prohibited.
 
 ## 8. Limitation of Liability
-To the maximum extent permitted by law, HighlyAligned's total liability for any claim arising from your use of the Platform shall not exceed the amount you paid for the specific product or service in question. We are **not liable** for any life decisions, business outcomes, or health choices made based on astrological guidance.
+To the maximum extent permitted by law, HighlyAligned''s total liability for any claim arising from your use of the Platform shall not exceed the amount you paid for the specific product or service in question. We are **not liable** for any life decisions, business outcomes, or health choices made based on astrological guidance.
 
 ## 9. Governing Law & Jurisdiction
 These Terms are governed by the laws of the **Republic of India**. Any dispute shall first be attempted to be resolved through good-faith negotiation. Failing that, disputes shall be settled through binding arbitration in **Pune, Maharashtra**, in accordance with the Arbitration and Conciliation Act, 1996.
@@ -58,13 +99,12 @@ In accordance with the Information Technology Act, 2000:
 - **Name:** Harshada (Proprietor)
 - **Email:** self.aligned1111@gmail.com
 - **Address:** Pimpri-Chinchwad, Maharashtra, India
-- **Response Time:** 48-72 business hours`,
-  },
-  privacy: {
-    title: 'Privacy Policy',
-    meta_description: 'Privacy Policy for HighlyAligned.in. Compliant with DPDP Act 2023.',
-    last_updated: '2026-01-01',
-    content: `**Effective Date:** January 1, 2026
+- **Response Time:** 48-72 business hours',
+'Terms and Conditions for HighlyAligned.in — Astrology e-commerce and services platform. Covers eligibility, service nature, payments via Razorpay, IP, liability, and governing law.',
+true),
+
+('privacy', 'Privacy Policy',
+'**Effective Date:** January 1, 2026
 **Business Name:** HighlyAligned
 
 ---
@@ -113,7 +153,7 @@ To exercise these rights, email us at self.aligned1111@gmail.com.
 
 ## 8. Security Measures
 - All data transmission uses **HTTPS/TLS encryption**.
-- Payment data is protected by Razorpay's **PCI-DSS Level 1** compliance.
+- Payment data is protected by Razorpay''s **PCI-DSS Level 1** compliance.
 - We do not store credit card details on our servers.
 - Access to user data is restricted to authorized personnel only.
 
@@ -125,13 +165,12 @@ For any privacy-related concerns or complaints:
 - **Name:** Harshada (Proprietor)
 - **Email:** self.aligned1111@gmail.com
 - **Address:** Pimpri-Chinchwad, Maharashtra, India
-- **Response Time:** 48-72 business hours`,
-  },
-  shipping: {
-    title: 'Shipping & Delivery Policy',
-    meta_description: 'Shipping and Delivery Policy for HighlyAligned.in.',
-    last_updated: '2026-01-01',
-    content: `**Business Name:** HighlyAligned
+- **Response Time:** 48-72 business hours',
+'Privacy Policy for HighlyAligned.in. Compliant with DPDP Act 2023. Covers data collection, processing, localization, user rights, retention, and security.',
+true),
+
+('shipping', 'Shipping & Delivery Policy',
+'**Business Name:** HighlyAligned
 **Contact:** self.aligned1111@gmail.com | +91 84688 83571
 
 ---
@@ -159,7 +198,7 @@ We currently deliver **only within India**. We partner with the following courie
 - **COD fee:** Rs. 50 additional for Cash on Delivery orders.
 
 ## 5. Order Tracking
-A tracking number is shared via **email and WhatsApp** within 24 hours of shipment. You can track your order on the courier partner's website.
+A tracking number is shared via **email and WhatsApp** within 24 hours of shipment. You can track your order on the courier partner''s website.
 
 ## 6. Cash on Delivery (COD) Policy
 - COD is available for orders up to Rs. 5,000.
@@ -185,13 +224,12 @@ Digital astrology reports and readings are delivered via:
 ## 10. Contact
 For shipping-related queries:
 - Email: self.aligned1111@gmail.com
-- WhatsApp: +91 84688 83571`,
-  },
-  refund: {
-    title: 'Cancellation & Refund Policy',
-    meta_description: 'Cancellation and Refund Policy for HighlyAligned.in.',
-    last_updated: '2026-01-01',
-    content: `**Business Name:** HighlyAligned
+- WhatsApp: +91 84688 83571',
+'Shipping and Delivery Policy for HighlyAligned.in. Covers delivery areas, timelines, charges, COD, tracking, damaged shipments, and failed delivery handling.',
+true),
+
+('refund', 'Cancellation & Refund Policy',
+'**Business Name:** HighlyAligned
 **Contact:** self.aligned1111@gmail.com | +91 84688 83571
 
 ---
@@ -244,234 +282,6 @@ In such cases, a **full refund** will be issued automatically.
 For refund and cancellation queries:
 - Email: self.aligned1111@gmail.com
 - WhatsApp: +91 84688 83571
-- Response time: 48-72 business hours`,
-  },
-}
-
-export async function generateStaticParams() {
-  return [
-    { slug: 'terms' },
-    { slug: 'privacy' },
-    { slug: 'shipping' },
-    { slug: 'refund' },
-  ]
-}
-
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params
-  const fallback = FALLBACK_PAGES[slug]
-
-  let title = fallback?.title || 'Legal'
-  let description = fallback?.meta_description || `${title} for HighlyAligned.in`
-
-  try {
-    const supabase = await createClient()
-    const { data: page } = await supabase
-      .from('legal_pages')
-      .select('title,meta_description')
-      .eq('slug', slug)
-      .eq('is_published', true)
-      .single()
-    if (page) {
-      title = page.title
-      description = page.meta_description || description
-    }
-  } catch {
-    // Fallback already set above
-  }
-
-  return {
-    title: `${title} — HighlyAligned.in`,
-    description,
-  }
-}
-
-function renderMarkdown(text: string): React.ReactNode[] {
-  const lines = text.split('\n')
-  const elements: React.ReactNode[] = []
-  let listItems: React.ReactNode[] = []
-  let inList = false
-  let key = 0
-
-  const flushList = () => {
-    if (inList && listItems.length > 0) {
-      elements.push(<ul key={`list-${key++}`} className="list-disc pl-5 space-y-1 my-3">{listItems}</ul>)
-      listItems = []
-      inList = false
-    }
-  }
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-    const trimmed = line.trim()
-
-    if (trimmed === '' || trimmed === '---') {
-      flushList()
-      if (trimmed === '---') {
-        elements.push(<hr key={`hr-${key++}`} className="my-6 border-slate-700/50" />)
-      } else {
-        elements.push(<div key={`sp-${key++}`} className="h-2" />)
-      }
-      continue
-    }
-
-    // Heading ##
-    if (trimmed.startsWith('## ')) {
-      flushList()
-      const headingText = trimmed.replace(/^##\s*/, '')
-      elements.push(
-        <h2 key={`h2-${key++}`} className="text-lg md:text-xl font-bold text-white mt-8 mb-3">
-          {parseInline(headingText)}
-        </h2>
-      )
-      continue
-    }
-
-    // Heading ###
-    if (trimmed.startsWith('### ')) {
-      flushList()
-      const headingText = trimmed.replace(/^###\s*/, '')
-      elements.push(
-        <h3 key={`h3-${key++}`} className="text-base md:text-lg font-semibold text-slate-200 mt-6 mb-2">
-          {parseInline(headingText)}
-        </h3>
-      )
-      continue
-    }
-
-    // List item
-    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
-      const itemText = trimmed.replace(/^[-*]\s*/, '')
-      listItems.push(<li key={`li-${key++}`} className="text-slate-300">{parseInline(itemText)}</li>)
-      inList = true
-      continue
-    }
-
-    // Table row (pipe-separated)
-    if (trimmed.includes('|') && trimmed.startsWith('|')) {
-      flushList()
-      const cells = trimmed.split('|').filter(Boolean).map(c => c.trim())
-      // Skip separator rows (contain only dashes)
-      if (cells.every(c => /^[-:]+$/.test(c))) continue
-      elements.push(
-        <div key={`row-${key++}`} className="grid gap-2 py-2 border-b border-white/5" style={{ gridTemplateColumns: `repeat(${cells.length}, 1fr)` }}>
-          {cells.map((cell, ci) => (
-            <div key={ci} className={`text-sm ${ci === 0 ? 'text-slate-200 font-medium' : 'text-slate-300'}`}>
-              {parseInline(cell)}
-            </div>
-          ))}
-        </div>
-      )
-      continue
-    }
-
-    // Regular paragraph
-    flushList()
-    elements.push(
-      <p key={`p-${key++}`} className="text-slate-300 leading-relaxed mb-3">
-        {parseInline(trimmed)}
-      </p>
-    )
-  }
-
-  flushList()
-  return elements
-}
-
-function parseInline(text: string): React.ReactNode {
-  const parts: React.ReactNode[] = []
-  let remaining = text
-  let key = 0
-
-  // Bold **text**
-  const boldRegex = /\*\*(.+?)\*\*/g
-  let lastIndex = 0
-  let match
-
-  while ((match = boldRegex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(<span key={`t-${key++}`}>{remaining.slice(lastIndex, match.index)}</span>)
-    }
-    parts.push(<strong key={`b-${key++}`} className="text-white font-semibold">{match[1]}</strong>)
-    lastIndex = match.index + match[0].length
-  }
-
-  if (lastIndex < text.length) {
-    parts.push(<span key={`t-${key++}`}>{remaining.slice(lastIndex)}</span>)
-  }
-
-  return parts.length === 0 ? text : parts
-}
-
-export default async function LegalPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params
-  const fallback = FALLBACK_PAGES[slug]
-
-  let page: { title: string; content: string; last_updated: string } | null = null
-
-  try {
-    const supabase = await createClient()
-    const { data: dbPage } = await supabase
-      .from('legal_pages')
-      .select('title,content,last_updated')
-      .eq('slug', slug)
-      .eq('is_published', true)
-      .single()
-    if (dbPage) {
-      page = dbPage as { title: string; content: string; last_updated: string }
-    }
-  } catch {
-    // Table doesn't exist yet — use fallback
-  }
-
-  // Use fallback if DB returned nothing
-  if (!page) {
-    if (fallback) {
-      page = fallback
-    } else {
-      return notFound()
-    }
-  }
-
-  return (
-    <div className="min-h-screen bg-[#0f172a] text-white">
-      <div className="max-w-3xl mx-auto px-4 py-8 md:py-12">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-slate-400 mb-6">
-          <Link href="/" className="hover:text-[#f59e0b] transition-colors flex items-center gap-1">
-            <Home className="h-3.5 w-3.5" /> Home
-          </Link>
-          <span>/</span>
-          <Link href="/legal/terms" className="hover:text-[#f59e0b] transition-colors flex items-center gap-1">
-            <Scale className="h-3.5 w-3.5" /> Legal
-          </Link>
-          <span>/</span>
-          <span className="text-slate-300">{page.title}</span>
-        </nav>
-
-        {/* Header */}
-        <div className="border-b border-white/10 pb-6 mb-8">
-          <h1 className="text-2xl md:text-4xl font-bold text-white mb-2">{page.title}</h1>
-          <p className="text-sm text-slate-500">
-            Last updated: {new Date(page.last_updated).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
-          </p>
-        </div>
-
-        {/* Content */}
-        <div className="space-y-1">
-          {renderMarkdown(page.content)}
-        </div>
-
-        {/* Back to home */}
-        <div className="mt-12 pt-6 border-t border-white/10">
-          <Link
-            href="/"
-            className="inline-flex items-center text-sm text-slate-400 hover:text-[#f59e0b] transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1.5" /> Back to Home
-          </Link>
-        </div>
-      </div>
-    </div>
-  )
-}
+- Response time: 48-72 business hours',
+'Cancellation and Refund Policy for HighlyAligned.in. Covers digital products, physical returns, consultation cancellation table, refund timelines, and dispute handling.',
+true);

@@ -34,11 +34,56 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const body = await req.json()
     const updates = body.updates || body
 
+    // ── Conflict check on reschedule ──
+    if (updates.date || updates.time_slot) {
+      const { data: existingBooking, error: checkError } = await supabaseService
+        .from('bookings')
+        .select('id')
+        .eq('id', id)
+        .single()
+
+      if (checkError || !existingBooking) {
+        return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+      }
+
+      // Fetch the current booking to get service_id if not in updates
+      const { data: currentBooking } = await supabaseService
+        .from('bookings')
+        .select('service_id, date, time_slot')
+        .eq('id', id)
+        .single()
+
+      const checkDate = updates.date || currentBooking?.date
+      const checkTime = updates.time_slot || currentBooking?.time_slot
+      const checkServiceId = updates.service_id || currentBooking?.service_id
+
+      const { data: conflict, error: conflictError } = await supabaseService
+        .from('bookings')
+        .select('id')
+        .eq('service_id', checkServiceId)
+        .eq('date', checkDate)
+        .eq('time_slot', checkTime)
+        .not('status', 'in', '(cancelled,no_show)')
+        .neq('id', id)
+        .maybeSingle()
+
+      if (conflictError) {
+        return NextResponse.json({ error: 'Failed to check availability' }, { status: 500 })
+      }
+
+      if (conflict) {
+        return NextResponse.json(
+          { error: 'This time slot is already booked. Please select a different time.' },
+          { status: 409 }
+        )
+      }
+    }
+
     const { data: booking, error } = await supabaseService
       .from('bookings')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
-      .select('*, services(name, duration_minutes, color_code), profiles(name, email, phone))')
+      .select('*, services(name, duration_minutes, color_code), profiles(name, email, phone)')
       .single()
 
     if (error) {

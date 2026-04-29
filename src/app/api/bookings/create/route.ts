@@ -51,6 +51,31 @@ export async function POST(req: Request) {
       }
     }
 
+    // ── Double-booking prevention ──
+    const { data: existingBooking, error: checkError } = await supabaseService
+      .from('bookings')
+      .select('id')
+      .eq('service_id', service_id)
+      .eq('date', date)
+      .eq('time_slot', time_slot)
+      .not('status', 'in', '(cancelled,no_show)')
+      .maybeSingle()
+
+    if (checkError) {
+      console.error('Booking conflict check error:', checkError)
+      return NextResponse.json(
+        { error: 'Failed to check booking availability' },
+        { status: 500 }
+      )
+    }
+
+    if (existingBooking) {
+      return NextResponse.json(
+        { error: 'This time slot is already booked. Please select a different time.' },
+        { status: 409 }
+      )
+    }
+
     const { data: booking, error } = await supabaseService
       .from('bookings')
       .insert({

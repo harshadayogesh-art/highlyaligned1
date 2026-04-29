@@ -136,7 +136,7 @@ export default function AccountLayout({
 
         {/* Mobile quick nav — horizontal scroll */}
         <div className="lg:hidden overflow-x-auto scrollbar-hide bg-white border-b border-slate-100">
-          <div className="flex gap-1 px-3 py-2 min-w-max">
+          <div className="flex gap-1.5 px-3 py-2.5 min-w-max">
             {navItems.map((item) => {
               const isActive =
                 pathname === item.href ||
@@ -146,7 +146,7 @@ export default function AccountLayout({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-colors min-h-[36px] ${
                     isActive
                       ? 'bg-amber-50 text-amber-700 border border-amber-200'
                       : 'text-slate-600 border border-slate-100 hover:border-slate-200'

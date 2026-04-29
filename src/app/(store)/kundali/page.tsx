@@ -24,6 +24,7 @@ import {
   Moon,
   ArrowUp,
   ArrowLeft,
+  Globe,
 } from 'lucide-react'
 
 const AREA_ICONS: Record<string, string> = {
@@ -37,6 +38,48 @@ const AREA_ICONS: Record<string, string> = {
   'Travel & Abroad': '✈️',
   'Education & Exam': '📚',
   'Spiritual Growth': '🧘',
+}
+
+const TRANSLATE_LANGS: { code: 'en' | 'hi' | 'gu' | 'mr'; label: string; native: string }[] = [
+  { code: 'en', label: 'English', native: 'English' },
+  { code: 'hi', label: 'Hindi', native: 'हिंदी' },
+  { code: 'gu', label: 'Gujarati', native: 'ગુજરાતી' },
+  { code: 'mr', label: 'Marathi', native: 'मराठी' },
+]
+
+async function translateWithMyMemory(text: string, targetLang: string): Promise<string> {
+  if (!text || targetLang === 'en') return text
+  try {
+    // MyMemory free API — chunk into ~400 char pieces to stay within limits
+    const chunks: string[] = []
+    let remaining = text
+    while (remaining.length > 0) {
+      const chunk = remaining.slice(0, 400)
+      const lastPeriod = chunk.lastIndexOf('.')
+      const lastNewline = chunk.lastIndexOf('\n')
+      const breakAt = Math.max(lastPeriod > 0 ? lastPeriod + 1 : 0, lastNewline > 0 ? lastNewline + 1 : 0)
+      if (breakAt > 50 && remaining.length > 400) {
+        chunks.push(remaining.slice(0, breakAt).trim())
+        remaining = remaining.slice(breakAt).trim()
+      } else {
+        chunks.push(remaining.slice(0, 400).trim())
+        remaining = remaining.slice(400).trim()
+      }
+    }
+
+    const translatedChunks = await Promise.all(
+      chunks.map(async (chunk) => {
+        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(chunk)}&langpair=en|${targetLang}`
+        const res = await fetch(url)
+        const data = await res.json()
+        return (data.responseData?.translatedText as string) || chunk
+      })
+    )
+
+    return translatedChunks.join(' ')
+  } catch {
+    return text
+  }
 }
 
 export default function KundaliPage() {
@@ -68,6 +111,12 @@ export default function KundaliPage() {
   const [selectedArea, setSelectedArea] = useState<string | null>(null)
   const [question, setQuestion] = useState('')
   const [citySuggestions, setCitySuggestions] = useState<string[]>([])
+
+  // Report translation state
+  const [reportLang, setReportLang] = useState<'en' | 'hi' | 'gu' | 'mr'>('en')
+  const [translatedAnswer, setTranslatedAnswer] = useState('')
+  const [translatedInsights, setTranslatedInsights] = useState<Record<string, string> | null>(null)
+  const [translating, setTranslating] = useState(false)
 
   const handleCityInput = (val: string) => {
     setForm((f) => ({ ...f, birth_location: val }))
@@ -154,6 +203,10 @@ export default function KundaliPage() {
           insights: data.insights,
           chart: data.chart,
         })
+        // Reset translation when new report arrives
+        setReportLang('en')
+        setTranslatedAnswer('')
+        setTranslatedInsights(null)
       } else {
         throw new Error('No answer received')
       }
@@ -184,6 +237,38 @@ export default function KundaliPage() {
       }
     } finally {
       setGenerating(false)
+    }
+  }
+
+  const handleTranslate = async (targetLang: 'en' | 'hi' | 'gu' | 'mr') => {
+    if (!result || targetLang === reportLang) return
+    if (targetLang === 'en') {
+      setReportLang('en')
+      setTranslatedAnswer('')
+      setTranslatedInsights(null)
+      return
+    }
+    setTranslating(true)
+    try {
+      const [ans, ...insightValues] = await Promise.all([
+        translateWithMyMemory(result.answer, targetLang),
+        result.insights?.bestPeriod ? translateWithMyMemory(result.insights.bestPeriod, targetLang) : Promise.resolve(''),
+        result.insights?.remedy ? translateWithMyMemory(result.insights.remedy, targetLang) : Promise.resolve(''),
+        result.insights?.luckyDay ? translateWithMyMemory(result.insights.luckyDay, targetLang) : Promise.resolve(''),
+        result.insights?.fieldAdvice ? translateWithMyMemory(result.insights.fieldAdvice, targetLang) : Promise.resolve(''),
+      ])
+      setTranslatedAnswer(ans)
+      setTranslatedInsights({
+        bestPeriod: insightValues[0],
+        remedy: insightValues[1],
+        luckyDay: insightValues[2],
+        fieldAdvice: insightValues[3],
+      })
+      setReportLang(targetLang)
+    } catch {
+      toast.error('Translation failed. Please try again.')
+    } finally {
+      setTranslating(false)
     }
   }
 
@@ -513,36 +598,72 @@ export default function KundaliPage() {
 
                 {/* Answer */}
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-4 w-4 text-[#f59e0b]" />
+                      <span className="text-xs text-slate-400 font-medium">
+                        {reportLang === 'en' ? 'Original' : `Translated to ${TRANSLATE_LANGS.find(l => l.code === reportLang)?.label || ''}`}
+                      </span>
+                    </div>
+                    {translating && (
+                      <span className="text-xs text-slate-400 flex items-center gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin" /> Translating...
+                      </span>
+                    )}
+                  </div>
                   <div className="whitespace-pre-line text-slate-300 leading-relaxed text-sm">
-                    {result.answer}
+                    {reportLang === 'en' || !translatedAnswer ? result.answer : translatedAnswer}
+                  </div>
+
+                  {/* Language Selector */}
+                  <div className="mt-5 pt-4 border-t border-white/10">
+                    <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold mb-2">
+                      {t('Read this report in:', 'इस रिपोर्ट को पढ़ें:')}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {TRANSLATE_LANGS.map((lang) => (
+                        <button
+                          key={lang.code}
+                          onClick={() => handleTranslate(lang.code)}
+                          disabled={translating}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                            reportLang === lang.code
+                              ? 'bg-[#f59e0b] text-slate-900'
+                              : 'bg-white/10 text-slate-300 hover:bg-white/20 hover:text-white'
+                          } ${translating ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          {lang.native}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
                 {/* Insights */}
-                {result.insights && (
+                {(reportLang === 'en' ? result.insights : translatedInsights) && (
                   <div className="grid grid-cols-2 gap-3">
-                    {result.insights.bestPeriod && (
+                    {(reportLang === 'en' ? result.insights : translatedInsights)?.bestPeriod && (
                       <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-xl">
                         <div className="text-amber-400 text-xs font-semibold mb-1">{t('Best Period', 'श्रेष्ठ काल')}</div>
-                        <div className="text-white text-sm">{result.insights.bestPeriod}</div>
+                        <div className="text-white text-sm">{(reportLang === 'en' ? result.insights : translatedInsights)?.bestPeriod}</div>
                       </div>
                     )}
-                    {result.insights.remedy && (
+                    {(reportLang === 'en' ? result.insights : translatedInsights)?.remedy && (
                       <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl">
                         <div className="text-emerald-400 text-xs font-semibold mb-1">{t('Simple Remedy', 'सरल उपाय')}</div>
-                        <div className="text-white text-sm">{result.insights.remedy}</div>
+                        <div className="text-white text-sm">{(reportLang === 'en' ? result.insights : translatedInsights)?.remedy}</div>
                       </div>
                     )}
-                    {result.insights.luckyDay && (
+                    {(reportLang === 'en' ? result.insights : translatedInsights)?.luckyDay && (
                       <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-xl">
                         <div className="text-blue-400 text-xs font-semibold mb-1">{t('Lucky Day', 'शुभ दिन')}</div>
-                        <div className="text-white text-sm">{result.insights.luckyDay}</div>
+                        <div className="text-white text-sm">{(reportLang === 'en' ? result.insights : translatedInsights)?.luckyDay}</div>
                       </div>
                     )}
-                    {result.insights.fieldAdvice && (
+                    {(reportLang === 'en' ? result.insights : translatedInsights)?.fieldAdvice && (
                       <div className="bg-purple-500/10 border border-purple-500/20 p-4 rounded-xl">
                         <div className="text-purple-400 text-xs font-semibold mb-1">{t('Guidance', 'मार्गदर्शन')}</div>
-                        <div className="text-white text-sm">{result.insights.fieldAdvice}</div>
+                        <div className="text-white text-sm">{(reportLang === 'en' ? result.insights : translatedInsights)?.fieldAdvice}</div>
                       </div>
                     )}
                   </div>
@@ -581,6 +702,9 @@ export default function KundaliPage() {
                       setForm({ name: '', mobile: '', email: '', dob: '', birth_time: '', birth_time_approx: false, birth_location: '' })
                       setSelectedArea(null)
                       setQuestion('')
+                      setReportLang('en')
+                      setTranslatedAnswer('')
+                      setTranslatedInsights(null)
                     }}
                     className="w-full border border-white/20 text-slate-300 py-3 rounded-xl text-center hover:bg-white/5 transition"
                   >

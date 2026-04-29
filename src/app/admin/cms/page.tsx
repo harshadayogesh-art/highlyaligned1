@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { useAllBanners, useCreateBanner, useUpdateBanner, useDeleteBanner, type Banner } from '@/hooks/use-banners'
 import { useAllPages, useCreatePage, useUpdatePage, useDeletePage, type CmsPage } from '@/hooks/use-pages'
 import { Button } from '@/components/ui/button'
@@ -216,8 +217,9 @@ function PagesTab() {
 
 function LegalPagesTab() {
   const [open, setOpen] = useState(false)
-  const [editing, setEditing] = useState<{ id: string; slug: string; title: string; content: string; is_active: boolean; last_updated: string } | null>(null)
-  const [form, setForm] = useState({ slug: '', title: '', content: '', is_active: true })
+  const [editing, setEditing] = useState<{ id: string; slug: string; title: string; content: string; meta_description: string; is_published: boolean; last_updated: string; updated_at: string } | null>(null)
+  const [form, setForm] = useState({ slug: '', title: '', content: '', meta_description: '', is_published: true })
+  const [saving, setSaving] = useState(false)
 
   const { data: pages, refetch } = useQuery({
     queryKey: ['legal-pages-admin'],
@@ -225,32 +227,65 @@ function LegalPagesTab() {
       const supabase = createClient()
       const { data, error } = await supabase.from('legal_pages').select('*').order('slug')
       if (error) throw error
-      return data
+      return data as { id: string; slug: string; title: string; content: string; meta_description: string; is_published: boolean; last_updated: string; updated_at: string }[]
     },
   })
 
   const save = async () => {
-    const supabase = createClient()
-    if (editing) {
-      await supabase.from('legal_pages').update({ title: form.title, content: form.content, is_active: form.is_active, last_updated: new Date().toISOString().slice(0, 10) }).eq('id', editing.id)
-    } else {
-      await supabase.from('legal_pages').insert({ slug: form.slug, title: form.title, content: form.content, is_active: form.is_active })
+    if (!form.title.trim() || !form.content.trim()) {
+      toast.error('Title and Content are required')
+      return
     }
-    setOpen(false)
-    setEditing(null)
-    setForm({ slug: '', title: '', content: '', is_active: true })
-    refetch()
+    setSaving(true)
+    try {
+      const supabase = createClient()
+      if (editing) {
+        const { error } = await supabase.from('legal_pages').update({
+          title: form.title.trim(),
+          content: form.content,
+          meta_description: form.meta_description.trim(),
+          is_published: form.is_published,
+          last_updated: new Date().toISOString().slice(0, 10),
+        }).eq('id', editing.id)
+        if (error) throw error
+        toast.success('Legal page updated successfully')
+      } else {
+        const { error } = await supabase.from('legal_pages').insert({
+          slug: form.slug.trim(),
+          title: form.title.trim(),
+          content: form.content,
+          meta_description: form.meta_description.trim(),
+          is_published: form.is_published,
+        })
+        if (error) throw error
+        toast.success('Legal page created successfully')
+      }
+      setOpen(false)
+      setEditing(null)
+      setForm({ slug: '', title: '', content: '', meta_description: '', is_published: true })
+      refetch()
+    } catch (err: unknown) {
+      toast.error((err as Error)?.message || 'Failed to save legal page')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
     <div className='space-y-4'>
       <div className='flex justify-end'>
-        <Button onClick={() => { setEditing(null); setForm({ slug: '', title: '', content: '', is_active: true }); setOpen(true) }}><Plus className='h-4 w-4 mr-1' /> Add Legal Page</Button>
+        <Button onClick={() => { setEditing(null); setForm({ slug: '', title: '', content: '', meta_description: '', is_published: true }); setOpen(true) }}><Plus className='h-4 w-4 mr-1' /> Add Legal Page</Button>
       </div>
       <div className='bg-white border border-slate-100 rounded-xl overflow-hidden'>
         <table className='w-full text-sm'>
           <thead className='bg-slate-50 text-slate-500'>
-            <tr><th className='text-left px-4 py-3'>Slug</th><th className='text-left px-4 py-3'>Title</th><th className='text-left px-4 py-3'>Last Updated</th><th className='text-left px-4 py-3'>Active</th><th className='text-right px-4 py-3'>Actions</th></tr>
+            <tr>
+              <th className='text-left px-4 py-3'>Slug</th>
+              <th className='text-left px-4 py-3'>Title</th>
+              <th className='text-left px-4 py-3'>Last Updated</th>
+              <th className='text-left px-4 py-3'>Published</th>
+              <th className='text-right px-4 py-3'>Actions</th>
+            </tr>
           </thead>
           <tbody className='divide-y divide-slate-100'>
             {pages?.map((p) => (
@@ -258,9 +293,13 @@ function LegalPagesTab() {
                 <td className='px-4 py-3 font-mono text-xs'>{p.slug}</td>
                 <td className='px-4 py-3 font-medium'>{p.title}</td>
                 <td className='px-4 py-3 text-slate-400'>{new Date(p.last_updated).toLocaleDateString('en-IN')}</td>
-                <td className='px-4 py-3'>{p.is_active ? 'Yes' : 'No'}</td>
+                <td className='px-4 py-3'>
+                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${p.is_published ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                    {p.is_published ? 'Live' : 'Draft'}
+                  </span>
+                </td>
                 <td className='px-4 py-3 text-right'>
-                  <Button size='sm' variant='ghost' onClick={() => { setEditing(p); setForm({ slug: p.slug, title: p.title, content: p.content, is_active: p.is_active }); setOpen(true) }}><Pencil className='h-4 w-4' /></Button>
+                  <Button size='sm' variant='ghost' onClick={() => { setEditing(p); setForm({ slug: p.slug, title: p.title, content: p.content, meta_description: p.meta_description || '', is_published: p.is_published }); setOpen(true) }}><Pencil className='h-4 w-4' /></Button>
                 </td>
               </tr>
             ))}
@@ -269,19 +308,31 @@ function LegalPagesTab() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className='max-w-lg max-h-[90vh] overflow-y-auto'>
+        <DialogContent className='max-w-2xl max-h-[90vh] overflow-y-auto'>
           <DialogHeader><DialogTitle>{editing ? 'Edit Legal Page' : 'Add Legal Page'}</DialogTitle></DialogHeader>
-          <div className='space-y-3'>
+          <div className='space-y-4'>
             <div className='grid grid-cols-2 gap-3'>
-              <div className='space-y-1'><Label>Slug</Label><Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} disabled={!!editing} /></div>
-              <div className='space-y-1'><Label>Title</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
+              <div className='space-y-1'><Label>Slug</Label><Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} disabled={!!editing} placeholder='terms' /></div>
+              <div className='space-y-1'><Label>Title</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder='Terms and Conditions' /></div>
             </div>
-            <div className='space-y-1'><Label>Content</Label><textarea className='w-full border border-slate-200 rounded-lg px-3 py-2 text-sm min-h-[300px]' value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} /></div>
+            <div className='space-y-1'>
+              <Label>Meta Description <span className='text-slate-400 font-normal text-xs'>(for SEO & social sharing)</span></Label>
+              <Input value={form.meta_description} onChange={(e) => setForm({ ...form, meta_description: e.target.value })} placeholder='Brief description for search engines...' />
+            </div>
+            <div className='space-y-1'>
+              <div className='flex items-center justify-between'>
+                <Label>Content</Label>
+                <span className='text-[10px] text-slate-400'>Supports Markdown: ## headings, **bold**, - lists</span>
+              </div>
+              <textarea className='w-full border border-slate-200 rounded-lg px-3 py-2 text-sm min-h-[320px] font-mono leading-relaxed' value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} placeholder='Enter page content here...' />
+            </div>
             <div className='flex items-center gap-2'>
-              <Switch checked={form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
-              <Label className='mb-0'>Active</Label>
+              <Switch checked={form.is_published} onCheckedChange={(v) => setForm({ ...form, is_published: v })} />
+              <Label className='mb-0 cursor-pointer'>Published (visible to public)</Label>
             </div>
-            <Button className='w-full bg-[#f59e0b] text-slate-900' onClick={save}>{editing ? 'Update' : 'Create'}</Button>
+            <Button className='w-full bg-[#f59e0b] text-slate-900' onClick={save} disabled={saving}>
+              {saving ? 'Saving...' : editing ? 'Update Page' : 'Create Page'}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -130,7 +130,7 @@ function BookingPageContent() {
 
       openRazorpayCheckout({
         orderId: rzpOrder.orderId,
-        amount: selectedService.price,
+        amountInPaise: rzpOrder.amount,
         name: 'HighlyAligned',
         description: `Booking ${booking.booking_number}`,
         prefill: {
@@ -139,12 +139,21 @@ function BookingPageContent() {
           contact: intake.phone,
         },
         onSuccess: async (response) => {
-          const supabase = createClient()
-          await supabase.from('bookings').update({
-            payment_status: 'captured',
-            razorpay_order_id: response.razorpay_order_id,
-            status: 'confirmed',
-          }).eq('id', booking.id)
+          const verifyRes = await fetch('/api/razorpay/verify-payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+              bookingId: booking.id,
+            }),
+          })
+          if (!verifyRes.ok) {
+            const err = await verifyRes.json().catch(() => ({ error: 'Verification failed' }))
+            toast.error(err.error || 'Payment verification failed')
+            return
+          }
           setBookingComplete(true)
         },
       })
@@ -217,7 +226,7 @@ function BookingPageContent() {
             </Label>
             <div className='grid grid-cols-7 gap-1'>
               {['Su','Mo','Tu','We','Th','Fr','Sa'].map((d) => (
-                <div key={d} className='text-center text-xs text-slate-400 py-1'>{d}</div>
+                <div key={d} className='text-center text-xs text-slate-400 py-2'>{d}</div>
               ))}
               {calendarDays.map((d) => {
                 const dateStr = d.toISOString().split('T')[0]
@@ -226,7 +235,7 @@ function BookingPageContent() {
                   <button
                     key={dateStr}
                     onClick={() => { setSelectedDate(dateStr); setSelectedTime('') }}
-                    className={`text-center text-xs py-2 rounded-lg ${
+                    className={`text-center text-xs py-3 min-h-[44px] rounded-lg ${
                       isSelected ? 'bg-[#f59e0b] text-white' : 'bg-slate-50 hover:bg-slate-100'
                     }`}
                   >
@@ -242,13 +251,13 @@ function BookingPageContent() {
               <Label className='flex items-center gap-2 mb-2'>
                 <Clock className='h-4 w-4' /> Available Slots
               </Label>
-              <div className='grid grid-cols-3 sm:grid-cols-4 gap-2'>
+              <div className='grid grid-cols-2 sm:grid-cols-3 gap-2'>
                 {slots.map((slot) => (
                   <button
                     key={slot.time}
                     disabled={!slot.available}
                     onClick={() => setSelectedTime(slot.time)}
-                    className={`text-xs py-2 rounded-lg border ${
+                    className={`text-xs py-3 min-h-[44px] rounded-lg border ${
                       selectedTime === slot.time
                         ? 'border-[#f59e0b] bg-amber-50 text-slate-900'
                         : slot.available

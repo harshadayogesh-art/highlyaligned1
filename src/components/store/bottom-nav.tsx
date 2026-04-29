@@ -26,11 +26,15 @@ export function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full ${
+              className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full ${
                 isActive ? 'text-[#f59e0b]' : 'text-slate-500'
               }`}
             >
-              <Icon className="h-5 w-5" />
+              {/* Active indicator dot */}
+              {isActive && (
+                <span className="absolute top-1.5 w-1 h-1 rounded-full bg-[#f59e0b]" />
+              )}
+              <Icon className="h-5 w-5 mt-1" />
               <span className="text-[10px] font-medium">{tab.label}</span>
             </Link>
           )

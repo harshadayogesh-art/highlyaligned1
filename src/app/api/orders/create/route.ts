@@ -2,10 +2,14 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import Razorpay from 'razorpay'
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-})
+function getRazorpay() {
+  const keyId = process.env.RAZORPAY_KEY_ID
+  const keySecret = process.env.RAZORPAY_KEY_SECRET
+  if (!keyId || !keySecret) {
+    throw new Error('Razorpay credentials not configured')
+  }
+  return new Razorpay({ key_id: keyId, key_secret: keySecret })
+}
 
 export async function POST(req: Request) {
   try {
@@ -197,12 +201,21 @@ export async function POST(req: Request) {
 
     // 10. If online payment, create Razorpay order
     let razorpayOrderId: string | null = null
+    let razorpayAmount: number | null = null
     if (paymentMode === 'online') {
       try {
+        razorpayAmount = Math.round(finalTotal * 100)
+        if (razorpayAmount < 100) {
+          return NextResponse.json(
+            { error: 'Order total must be at least Rs.1 for online payment' },
+            { status: 400 }
+          )
+        }
+        const razorpay = getRazorpay()
         const rzpOrder = await razorpay.orders.create({
-          amount: Math.round(finalTotal * 100),
+          amount: razorpayAmount,
           currency: 'INR',
-          receipt: orderNumber,
+          receipt: orderNumber.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40),
           notes: { source: 'highlyaligned', order_id: order.id },
         })
         razorpayOrderId = rzpOrder.id
@@ -210,10 +223,11 @@ export async function POST(req: Request) {
         await supabase.from('orders').update({
           razorpay_order_id: rzpOrder.id,
         }).eq('id', order.id)
-      } catch (rzpErr) {
+      } catch (rzpErr: any) {
         console.error('Razorpay order creation error:', rzpErr)
+        const msg = rzpErr?.error?.description || rzpErr?.message || 'Failed to create payment order'
         return NextResponse.json(
-          { error: 'Failed to create payment order', orderId: order.id },
+          { error: msg, orderId: order.id },
           { status: 500 }
         )
       }
@@ -228,6 +242,7 @@ export async function POST(req: Request) {
       discount,
       finalTotal,
       razorpayOrderId,
+      razorpayAmount,
       paymentMode,
     })
   } catch (err) {

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { Search, User, Menu, X, LayoutDashboard } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { CartIcon } from './cart-icon'
 import { MiniCart } from './mini-cart'
@@ -22,9 +23,21 @@ const navLinks = [
 export function StoreHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const pathname = usePathname()
+  const router = useRouter()
   const { data: settings } = useSettings()
   const { user, isAdmin } = useAuth()
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      router.push(`/shop?search=${encodeURIComponent(searchQuery.trim())}`)
+      setMobileSearchOpen(false)
+      setSearchQuery('')
+    }
+  }
 
   const logoConfig = settings?.logo_config as Record<string, string> | undefined
 
@@ -79,6 +92,15 @@ export function StoreHeader() {
               className="bg-transparent text-sm text-white placeholder-white/50 outline-none w-28"
             />
           </div>
+
+          {/* Search (mobile) */}
+          <button
+            onClick={() => setMobileSearchOpen(true)}
+            className="lg:hidden text-white hover:text-amber-400 p-2"
+            aria-label="Search"
+          >
+            <Search className="h-5 w-5" />
+          </button>
 
           <CartIcon onClick={() => setCartOpen(true)} className="text-white hover:text-amber-400" />
 
@@ -141,6 +163,33 @@ export function StoreHeader() {
               Login / Sign Up
             </Link>
           )}
+        </div>
+      )}
+
+      {/* Mobile Search Overlay */}
+      {mobileSearchOpen && (
+        <div className="md:hidden fixed inset-0 z-[60] bg-violet-900/95 backdrop-blur-sm flex flex-col">
+          <div className="flex items-center gap-3 px-4 h-20">
+            <form onSubmit={handleSearchSubmit} className="flex-1">
+              <div className="flex items-center bg-white/10 rounded-full px-4 py-2.5">
+                <Search className="h-4 w-4 text-white/70 mr-2" />
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-transparent text-sm text-white placeholder-white/50 outline-none w-full"
+                />
+              </div>
+            </form>
+            <button
+              onClick={() => { setMobileSearchOpen(false); setSearchQuery('') }}
+              className="text-white/80 hover:text-white text-sm font-medium px-2"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
     </header>

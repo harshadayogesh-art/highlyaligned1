@@ -30,6 +30,7 @@ import {
   Save,
   X,
 } from 'lucide-react'
+import { PasswordInput } from '@/components/ui/password-input'
 
 export default function MyProfilePage() {
   const router = useRouter()
@@ -222,8 +223,7 @@ export default function MyProfilePage() {
           <div className="space-y-3 pt-2">
             <div className="space-y-1.5">
               <Label>Current Password</Label>
-              <Input
-                type="password"
+              <PasswordInput
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder="••••••"
@@ -231,8 +231,7 @@ export default function MyProfilePage() {
             </div>
             <div className="space-y-1.5">
               <Label>New Password</Label>
-              <Input
-                type="password"
+              <PasswordInput
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="••••••"
@@ -240,8 +239,7 @@ export default function MyProfilePage() {
             </div>
             <div className="space-y-1.5">
               <Label>Confirm New Password</Label>
-              <Input
-                type="password"
+              <PasswordInput
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••"

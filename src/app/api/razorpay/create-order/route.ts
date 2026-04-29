@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server'
 import Razorpay from 'razorpay'
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-})
+function getRazorpay() {
+  const keyId = process.env.RAZORPAY_KEY_ID
+  const keySecret = process.env.RAZORPAY_KEY_SECRET
+  if (!keyId || !keySecret) {
+    throw new Error('Razorpay credentials not configured')
+  }
+  return new Razorpay({ key_id: keyId, key_secret: keySecret })
+}
 
 export async function POST(req: Request) {
   try {
@@ -14,10 +18,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid amount' }, { status: 400 })
     }
 
+    const amountInPaise = Math.round(amount * 100)
+    if (amountInPaise < 100) {
+      return NextResponse.json({ error: 'Amount must be at least Rs.1' }, { status: 400 })
+    }
+
+    const razorpay = getRazorpay()
     const order = await razorpay.orders.create({
-      amount: Math.round(amount * 100),
+      amount: amountInPaise,
       currency,
-      receipt,
+      receipt: receipt ? receipt.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) : undefined,
       notes: { source: 'highlyaligned' },
     })
 
@@ -26,10 +36,11 @@ export async function POST(req: Request) {
       amount: order.amount,
       currency: order.currency,
     })
-  } catch (err) {
+  } catch (err: any) {
     console.error('Razorpay create order error:', err)
+    const msg = err?.error?.description || err?.message || 'Failed to create payment order'
     return NextResponse.json(
-      { error: 'Failed to create payment order' },
+      { error: msg },
       { status: 500 }
     )
   }

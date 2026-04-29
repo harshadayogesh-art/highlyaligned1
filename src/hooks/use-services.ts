@@ -10,11 +10,20 @@ export interface ServiceRow {
   description: string | null
   price: number
   duration_minutes: number
+  buffer_time_minutes: number
+  mode: string[]
   color_code: string | null
   is_active: boolean
   is_featured: boolean
   image_url: string | null
+  category_id: string | null
+  sort_order: number
   created_at: string
+  // Availability config
+  working_hours_start?: string | null
+  working_hours_end?: string | null
+  slot_interval_minutes?: number | null
+  blocked_dates?: string[] | null
 }
 
 export function useServices(options: { activeOnly?: boolean } = {}) {
@@ -22,7 +31,7 @@ export function useServices(options: { activeOnly?: boolean } = {}) {
     queryKey: ['services', options.activeOnly],
     queryFn: async () => {
       const supabase = createClient()
-      let query = supabase.from('services').select('*').order('created_at', { ascending: false })
+      let query = supabase.from('services').select('*').order('sort_order', { ascending: true })
       if (options.activeOnly) {
         query = query.eq('is_active', true)
       }
