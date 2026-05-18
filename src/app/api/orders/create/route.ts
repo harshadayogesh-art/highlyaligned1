@@ -257,7 +257,7 @@ export async function POST(req: Request) {
       insertPayload.idempotency_key = idempotencyKey
     }
 
-    let orderResult = await supabase
+    let orderResult = await service
       .from('orders')
       .insert(insertPayload)
       .select()
@@ -266,7 +266,7 @@ export async function POST(req: Request) {
     // If idempotency_key column doesn't exist yet, retry without it
     if (orderResult.error && idempotencyKey && orderResult.error.message?.includes('idempotency_key')) {
       const { idempotency_key, ...payloadWithoutIdempotency } = insertPayload
-      orderResult = await supabase
+      orderResult = await service
         .from('orders')
         .insert(payloadWithoutIdempotency)
         .select()
@@ -280,7 +280,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: orderError?.message || 'Failed to create order' }, { status: 500 })
     }
 
-    const { error: itemsError } = await supabase.from('order_items').insert(
+    const { error: itemsError } = await service.from('order_items').insert(
       orderItems.map((oi) => ({ ...oi, order_id: order.id }))
     )
 
