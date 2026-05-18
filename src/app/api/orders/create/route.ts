@@ -148,9 +148,11 @@ export async function POST(req: Request) {
       })
     }
 
+    const service = getServiceClient('orders-create-stock')
+
     for (const item of items) {
       const product = productMap.get(item.productId)!
-      const { data: updated } = await supabase
+      const { data: updated } = await service
         .from('products')
         .update({ stock: product.stock - item.quantity })
         .eq('id', product.id)
@@ -161,7 +163,7 @@ export async function POST(req: Request) {
       if (!updated) {
         for (const rb of stockRollback) {
           const p = productMap.get(rb.id)!
-          await supabase.from('products').update({ stock: p.stock }).eq('id', rb.id)
+          await service.from('products').update({ stock: p.stock }).eq('id', rb.id)
         }
         return NextResponse.json({ error: 'Stock changed during checkout. Please try again.' }, { status: 409 })
       }
