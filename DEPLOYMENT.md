@@ -1,4 +1,4 @@
-# HighlyAligned — Deployment Guide
+# Selfaligned — Deployment Guide
 
 ## Step 1: Prerequisites
 
@@ -9,7 +9,7 @@
 - [ ] Gupshup account + WhatsApp Business API approval
 - [ ] MSG91 account + DLT-registered templates
 - [ ] Resend account + domain verification
-- [ ] Domain: highlyaligned.in (or your domain)
+- [ ] Domain: Selfaligned.in (or your domain)
 
 ## Step 2: Supabase Setup
 
@@ -29,7 +29,7 @@
 
 ```bash
 git clone <repo-url>
-cd highlyaligned
+cd Selfaligned
 npm install
 ```
 
@@ -73,9 +73,9 @@ Test these flows:
 
 ## Step 5: Domain Setup
 
-1. In Vercel Dashboard → Domains → Add `highlyaligned.in`
+1. In Vercel Dashboard → Domains → Add `Selfaligned.in`
 2. Update DNS records at your registrar to point to Vercel
-3. Update `NEXT_PUBLIC_SITE_URL` to `https://highlyaligned.in`
+3. Update `NEXT_PUBLIC_SITE_URL` to `https://Selfaligned.in`
 4. Redeploy
 
 ## Step 6: Razorpay Live Mode
@@ -83,7 +83,7 @@ Test these flows:
 1. Switch Razorpay account to Live mode
 2. Generate Live API keys
 3. Update environment variables with live keys
-4. Add webhook URL: `https://highlyaligned.in/api/razorpay/webhook`
+4. Add webhook URL: `https://Selfaligned.in/api/razorpay/webhook`
 5. Set webhook secret in env vars
 
 ## Step 7: Notification Providers
@@ -107,16 +107,16 @@ Test these flows:
 
 ### Email (Resend)
 1. Create account at [resend.com](https://resend.com)
-2. Verify domain `highlyaligned.in`
+2. Verify domain `Selfaligned.in`
 3. Get API key
 4. Update env vars
 
 ## Step 8: SEO Verification
 
 1. Submit sitemap to Google Search Console:
-   `https://highlyaligned.in/sitemap.xml`
+   `https://Selfaligned.in/sitemap.xml`
 2. Add Google Analytics 4 tracking code to layout (optional)
-3. Test robots.txt: `https://highlyaligned.in/robots.txt`
+3. Test robots.txt: `https://Selfaligned.in/robots.txt`
 
 ## Step 9: PWA Testing
 

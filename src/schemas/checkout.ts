@@ -17,6 +17,9 @@ export const checkoutSchema = z.object({
   address: addressSchema,
   paymentMode: z.enum(['online', 'cod']).default('online'),
   couponCode: z.string().optional(),
+  acceptTerms: z.boolean().refine((val) => val === true, {
+    message: 'You must accept the Terms & Conditions',
+  }),
 })
 
 export type CheckoutFormValues = z.input<typeof checkoutSchema>

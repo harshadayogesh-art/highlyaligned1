@@ -1,30 +1,20 @@
 'use client'
 
 import Link from 'next/link'
-import { useQuery } from '@tanstack/react-query'
-import { createClient } from '@/lib/supabase/client'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { Phone, Mail, MapPin, Globe, Smartphone } from 'lucide-react'
 
-// Only one export per file for Fast Refresh compatibility
-export function StoreFooter() {
-  return <StoreFooterContent />
+interface StoreFooterProps {
+  settings?: Record<string, unknown>
 }
 
-function StoreFooterContent() {
-  const { data: settings } = useQuery({
-    queryKey: ['settings-all'],
-    queryFn: async () => {
-      const supabase = createClient()
-      const { data } = await supabase.from('settings').select('*')
-      const s: Record<string, unknown> = {}
-      data?.forEach((row) => { s[row.key] = row.value })
-      return s
-    },
-  })
+export function StoreFooter({ settings }: StoreFooterProps) {
+  return <StoreFooterContent settings={settings} />
+}
 
+function StoreFooterContent({ settings }: { settings?: Record<string, unknown> }) {
   const footer = (settings?.footer_config as Record<string, string | boolean>) || {}
   const social = (settings?.social_links as Record<string, string>) || {}
   const logoConfig = (settings?.logo_config as Record<string, string>) || {}
@@ -35,12 +25,18 @@ function StoreFooterContent() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="space-y-3">
-            {logoConfig.logo_url ? (
+            {logoConfig.logo_url && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={logoConfig.logo_url} alt="Logo" className="h-14 w-auto object-contain mb-2" />
-            ) : (
-              <h3 className="text-white font-bold text-lg">{footer.name || 'HighlyAligned'}</h3>
+              <img src={logoConfig.logo_url} alt="Logo" className="h-12 w-auto object-contain" />
             )}
+            <div className="flex flex-col leading-none gap-1">
+              <h3 className="text-white font-bold text-xl font-serif tracking-tight">
+                {footer.name || 'Selfaligned'}
+              </h3>
+              <span className="text-[10px] text-amber-400/80 font-medium tracking-wider uppercase">
+                Spiritual Wellness
+              </span>
+            </div>
             <p className="text-sm text-slate-400 leading-relaxed">
               {footer.tagline || 'Align Your Energy, Transform Your Life'}
             </p>
@@ -140,7 +136,7 @@ function StoreFooterContent() {
         </div>
 
         <div className="border-t border-slate-800 mt-10 pt-6 text-center text-xs text-slate-500" suppressHydrationWarning>
-          &copy; {new Date().getFullYear()} {footer.name || 'HighlyAligned'}. All rights reserved.
+          &copy; {new Date().getFullYear()} {footer.name || 'Selfaligned'}. All rights reserved.
         </div>
       </div>
     </footer>

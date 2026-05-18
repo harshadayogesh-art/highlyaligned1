@@ -129,19 +129,51 @@ export function useUpdateOrderStatus() {
       if (!res.ok) {
         throw new Error(data.error || 'Failed to update order')
       }
-      return { orderId, status }
+      return { orderId, status, extra }
     },
-    onSuccess: ({ orderId, status }) => {
+    onMutate: async ({ orderId, status, extra }) => {
+      await queryClient.cancelQueries({ queryKey: ['orders'] })
+      await queryClient.cancelQueries({ queryKey: ['order', orderId] })
+
+      const previousOrders = queryClient.getQueryData(['orders'])
+      const previousOrder = queryClient.getQueryData(['order', orderId])
+
+      queryClient.setQueryData(['orders'], (old: any) => {
+        if (!old?.data) return old
+        return {
+          ...old,
+          data: old.data.map((o: any) =>
+            o.id === orderId ? { ...o, status, ...extra } : o
+          ),
+        }
+      })
+
+      queryClient.setQueryData(['order', orderId], (old: any) => {
+        if (!old) return old
+        return { ...old, status, ...extra }
+      })
+
+      return { previousOrders, previousOrder }
+    },
+    onError: (err: Error, { orderId }, context) => {
+      if (context?.previousOrders) {
+        queryClient.setQueryData(['orders'], context.previousOrders)
+      }
+      if (context?.previousOrder) {
+        queryClient.setQueryData(['order', orderId], context.previousOrder)
+      }
+      toast.error(err.message || 'Failed to update order')
+    },
+    onSettled: (_data, _error, { orderId }) => {
       queryClient.invalidateQueries({ queryKey: ['orders'] })
       queryClient.invalidateQueries({ queryKey: ['order', orderId] })
+    },
+    onSuccess: ({ orderId, status }) => {
       toast.success(`Order marked as ${status}`)
 
       if (['accepted', 'shipped', 'delivered'].includes(status)) {
         triggerOrderNotification(orderId, status as any).catch(console.error)
       }
-    },
-    onError: (err: Error) => {
-      toast.error(err.message || 'Failed to update order')
     },
   })
 }

@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { calculateBasicChart, getNakshatraLord } from '@/lib/astrology'
-import { supabaseService } from '@/lib/supabase/service'
+import { getServiceClient } from '@/lib/supabase/service'
 import { z } from 'zod'
+
+function getKundaliService() {
+  return getServiceClient('generate-kundali')
+}
 
 const requestSchema = z.object({
   leadId: z.string().uuid(),
@@ -79,7 +83,7 @@ export async function POST(req: Request) {
     // Fetch custom AI prompt for this area (if admin has configured one)
     let customPrompt: string | null = null
     if (areaOfLifeId) {
-      const { data: areaData } = await supabaseService
+      const { data: areaData } = await getKundaliService()
         .from('lead_magnet_areas')
         .select('ai_prompt')
         .eq('id', areaOfLifeId)
@@ -104,7 +108,7 @@ export async function POST(req: Request) {
     }
     if (areaOfLifeId) leadUpdatePayload.area_of_life_id = areaOfLifeId
 
-    const { error: updateError } = await supabaseService
+    const { error: updateError } = await getKundaliService()
       .from('leads')
       .update(leadUpdatePayload)
       .eq('id', leadId)
@@ -114,7 +118,7 @@ export async function POST(req: Request) {
     }
 
     // 2. Check if we already have an AI answer cached
-    const { data: existing } = await supabaseService
+    const { data: existing } = await getKundaliService()
       .from('leads')
       .select('ai_answer')
       .eq('id', leadId)
@@ -251,7 +255,7 @@ Then add exactly these 4 labeled lines at the very end of your response:
     const insights = parseInsights(answer, language)
 
     // 5. Save result to lead
-    const { error: saveError } = await supabaseService
+    const { error: saveError } = await getKundaliService()
       .from('leads')
       .update({
         ai_answer: answer,
@@ -274,16 +278,16 @@ Then add exactly these 4 labeled lines at the very end of your response:
 
     // 6. Try to send WhatsApp notification (non-blocking)
     try {
-      const { data: leadData } = await supabaseService.from('leads').select('mobile').eq('id', leadId).single()
+      const { data: leadData } = await getKundaliService().from('leads').select('mobile').eq('id', leadId).single()
       if (leadData?.mobile) {
         const { sendWhatsApp } = await import('@/lib/notifications')
-        const { data: settings } = await supabaseService.from('settings').select('value').eq('key', 'notifications_config').single()
+        const { data: settings } = await getKundaliService().from('settings').select('value').eq('key', 'notifications_config').single()
         const config = settings?.value as Record<string, boolean> | null
 
         if (!config || config.lead_reports !== false) {
           await sendWhatsApp(leadData.mobile, 'lead_report', {
             1: name,
-            2: `https://highlyaligned.in/kundali`,
+            2: `https://Selfaligned.in/kundali`,
           }).catch(console.error)
         }
       }
@@ -313,7 +317,7 @@ Then add exactly these 4 labeled lines at the very end of your response:
       const leadId = body.leadId as string
       if (leadId) {
         const chart = body.dob ? calculateBasicChart(String(body.dob), String(body.birthTime || '12:00')) : null
-        await supabaseService
+        await getKundaliService()
           .from('leads')
           .update({
             ai_answer: fallback,

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import { useQuery } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -9,13 +10,21 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useSalesReport, useGstReport } from '@/hooks/use-reports'
-import {
-  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-} from 'recharts'
 import { Download, TrendingUp, ShoppingBag, Users, CalendarDays, Sparkles, IndianRupee, FileText, Calculator } from 'lucide-react'
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
+
+const ResponsiveContainer = dynamic(() => import('recharts').then((m) => m.ResponsiveContainer), { ssr: false })
+const LineChart = dynamic(() => import('recharts').then((m) => m.LineChart), { ssr: false })
+const Line = dynamic(() => import('recharts').then((m) => m.Line), { ssr: false })
+const BarChart = dynamic(() => import('recharts').then((m) => m.BarChart), { ssr: false })
+const Bar = dynamic(() => import('recharts').then((m) => m.Bar), { ssr: false })
+const PieChart = dynamic(() => import('recharts').then((m) => m.PieChart), { ssr: false })
+const Pie = dynamic(() => import('recharts').then((m) => m.Pie), { ssr: false })
+const Cell = dynamic(() => import('recharts').then((m) => m.Cell), { ssr: false })
+const XAxis = dynamic(() => import('recharts').then((m) => m.XAxis), { ssr: false })
+const YAxis = dynamic(() => import('recharts').then((m) => m.YAxis), { ssr: false })
+const CartesianGrid = dynamic(() => import('recharts').then((m) => m.CartesianGrid), { ssr: false })
+const Tooltip = dynamic(() => import('recharts').then((m) => m.Tooltip), { ssr: false })
+const Legend = dynamic(() => import('recharts').then((m) => m.Legend), { ssr: false })
 
 const COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444', '#14b8a6']
 
@@ -71,8 +80,12 @@ function SalesReportTab() {
     return { totalOrders, totalRevenue, totalGst, avgOrder, totalDiscount }
   }, [records])
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
     if (!records || records.length === 0) return
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable'),
+    ])
     const doc = new jsPDF({ orientation: 'landscape' })
     doc.setFontSize(16)
     doc.text('Sales Report', 14, 20)
@@ -197,8 +210,12 @@ function GstFilingTab() {
     return { totalTaxable, totalCgst, totalSgst, totalIgst, totalGst, totalInvoices: records.length }
   }, [records])
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
     if (!records || records.length === 0) return
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable'),
+    ])
     const doc = new jsPDF({ orientation: 'landscape' })
     doc.setFontSize(16)
     doc.text('GST Filing Report', 14, 20)

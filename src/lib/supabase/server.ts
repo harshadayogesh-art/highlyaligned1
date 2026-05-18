@@ -9,7 +9,16 @@ export const createClient = async () => {
     {
       cookies: {
         getAll: () => cookieStore.getAll(),
-        setAll: () => {},
+        setAll: (cookiesToSet) => {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options)
+            })
+          } catch {
+            // The `setAll` method may be called from a Server Component
+            // where the cookie store is read-only; ignore in that case.
+          }
+        },
       },
     }
   )

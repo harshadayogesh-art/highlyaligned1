@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
+import { getServiceClient } from '@/lib/supabase/service'
+import { z } from 'zod'
+import { rateLimit } from '@/lib/rate-limit'
+import { logAudit, logOrderStatus } from '@/lib/audit'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const patchBodySchema = z.object({
+  status: z.string().optional(),
+  extra: z.record(z.string(), z.unknown()).optional(),
+})
+
+function getAdmin() {
+  return getServiceClient('orders-id-route')
+}
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -14,7 +21,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: 'Order ID required' }, { status: 400 })
     }
 
-    const { data: order, error } = await supabaseAdmin
+    const { data: order, error } = await getAdmin()
       .from('orders')
       .select(
         '*, profiles(name, email, phone), order_items(*, products(name, images))'
@@ -58,15 +65,33 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const body = await req.json()
-    const { status, extra } = body
+    const ip = req.headers.get('x-forwarded-for') || 'unknown'
+    const rl = rateLimit(`order-update:${ip}`, 30, 60 * 1000)
+    if (!rl.success) {
+      return NextResponse.json({ error: 'Rate limit exceeded. Please slow down.' }, { status: 429 })
+    }
+
+    const rawBody = await req.json()
+    const parsed = patchBodySchema.safeParse(rawBody)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 })
+    }
+
+    const { status, extra } = parsed.data
+
+    // Fetch current order for status history
+    const { data: currentOrder } = await getAdmin()
+      .from('orders')
+      .select('status')
+      .eq('id', id)
+      .single()
 
     const update: Record<string, unknown> = { updated_at: new Date().toISOString(), ...extra }
     if (status) {
       update.status = status
     }
 
-    const { data: order, error } = await supabaseAdmin
+    const { data: order, error } = await getAdmin()
       .from('orders')
       .update(update)
       .eq('id', id)
@@ -77,6 +102,31 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       console.error('Order status update error:', error)
       return NextResponse.json({ error: error.message || 'Failed to update order' }, { status: 500 })
     }
+
+    // Log order status change
+    if (status && currentOrder) {
+      await logOrderStatus({
+        orderId: id,
+        status,
+        previousStatus: currentOrder.status,
+        changedBy: user.id,
+        changedByName: user.email || '',
+        notes: extra?.admin_notes as string || undefined,
+        extra: extra || {},
+      })
+    }
+
+    // Log audit trail
+    await logAudit({
+      userId: user.id,
+      userEmail: user.email || '',
+      action: 'UPDATE',
+      tableName: 'orders',
+      recordId: id,
+      oldData: currentOrder ? { status: currentOrder.status } : undefined,
+      newData: { status, ...extra },
+      ipAddress: ip,
+    })
 
     return NextResponse.json({ success: true, order })
   } catch (err) {

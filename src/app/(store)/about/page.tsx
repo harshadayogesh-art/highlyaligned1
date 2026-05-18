@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { usePageBlockMap } from '@/components/store/page-block'
 
 export const metadata = {
-  title: 'About Harshada — HighlyAligned',
+  title: 'About Harshada — Selfaligned',
   description: 'Meet Harshada Yogesh — NLP Coach, Oracle Card Reader, and Chakra Healer with 10+ years of experience.',
 }
 

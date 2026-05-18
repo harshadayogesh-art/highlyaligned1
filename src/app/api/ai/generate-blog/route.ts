@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     }
 
     const systemText =
-      'You are an expert content writer for HighlyAligned, a spiritual wellness brand based in India. ' +
+      'You are an expert content writer for Selfaligned, a spiritual wellness brand based in India. ' +
       'You write SEO-optimized blog posts about astrology, crystals, chakras, tarot, rituals, and spiritual growth. ' +
       'Always respond with a single valid JSON object containing the blog post.'
 

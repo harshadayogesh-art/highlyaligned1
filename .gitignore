@@ -32,6 +32,21 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# temp / junk files
+*.py
+s1.js
+s2.js
+gen*.js
+tmp*
+test*.txt
+test*.js
+build_output.txt
+build_log*.txt
+input.txt
+f.txt
+states.json
 
 # vercel
 .vercel

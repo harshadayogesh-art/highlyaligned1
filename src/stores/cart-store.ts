@@ -17,6 +17,7 @@ interface CartState {
   removeItem: (productId: string) => void
   updateQty: (productId: string, quantity: number) => void
   clearCart: () => void
+  syncPrices: (products: { productId: string; price: number; mrp: number; stock: number }[]) => void
   total: () => number
   totalMrp: () => number
   itemCount: () => number
@@ -63,6 +64,21 @@ export const useCartStore = create<CartState>()(
           }
         }),
       clearCart: () => set({ items: [] }),
+      syncPrices: (products) =>
+        set((state) => ({
+          items: state.items.map((item) => {
+            const updated = products.find((p) => p.productId === item.productId)
+            if (updated) {
+              return {
+                ...item,
+                price: updated.price,
+                mrp: updated.mrp,
+                maxStock: updated.stock,
+              }
+            }
+            return item
+          }),
+        })),
       total: () =>
         get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
       totalMrp: () =>
@@ -79,8 +95,9 @@ export const useCartStore = create<CartState>()(
       },
     }),
     {
-      name: 'highlyaligned-cart',
+      name: 'Selfaligned-cart',
       partialize: (state) => ({ items: state.items }),
+      skipHydration: true,
     }
   )
 )

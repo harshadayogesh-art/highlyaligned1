@@ -7,7 +7,7 @@ import { OfflineBanner } from '@/components/shared/offline-banner'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'HighlyAligned — Spiritual Wellness, E-Commerce & Booking',
+  title: 'Selfaligned — Spiritual Wellness, E-Commerce & Booking',
   description:
     'Align your mind, body, and spirit with curated crystals, healing services, and personalized astrology guidance. Shop spiritual products, book consultations, and get free Vedic astrology reports.',
   keywords: [
@@ -23,18 +23,18 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: 'Harshada Yogesh' }],
   creator: 'Harshada Yogesh',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://highlyaligned.in'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://Selfaligned.in'),
   openGraph: {
-    title: 'HighlyAligned — Spiritual Wellness & Astrology',
+    title: 'Selfaligned — Spiritual Wellness & Astrology',
     description: 'Curated crystals, healing services, and personalized astrology guidance.',
     url: '/',
-    siteName: 'HighlyAligned',
+    siteName: 'Selfaligned',
     locale: 'en_IN',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'HighlyAligned — Spiritual Wellness & Astrology',
+    title: 'Selfaligned — Spiritual Wellness & Astrology',
     description: 'Curated crystals, healing services, and personalized astrology guidance.',
   },
   robots: {
@@ -69,9 +69,9 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Organization",
-              "name": "HighlyAligned",
-              "url": "https://highlyaligned.in",
-              "logo": "https://highlyaligned.in/icon-512.png",
+              "name": "Selfaligned",
+              "url": "https://Selfaligned.in",
+              "logo": "https://Selfaligned.in/icon-512.png",
               "contactPoint": {
                 "@type": "ContactPoint",
                 "telephone": "+91-84688-83571",

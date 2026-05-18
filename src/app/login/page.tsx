@@ -14,6 +14,7 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { PasswordInput } from '@/components/ui/password-input'
+import { rateLimit } from '@/lib/rate-limit'
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -38,6 +39,12 @@ function LoginForm() {
   })
 
   const onSubmit = async (values: LoginValues) => {
+    const rl = rateLimit('login-' + values.email.toLowerCase(), 5, 60_000)
+    if (!rl.success) {
+      toast.error('Too many attempts. Please try again in a minute.')
+      return
+    }
+
     const supabase = createClient()
     setLoading(true)
     if (mode === 'login') {
@@ -99,7 +106,7 @@ function LoginForm() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-center text-2xl">
-            <span className="text-[#f59e0b]">Highly</span>Aligned
+            <span className="text-[#f59e0b]">Self</span>aligned
           </CardTitle>
           <p className="text-center text-sm text-slate-500">
             {mode === 'login' ? 'Sign in to your account' : 'Create a new account'}

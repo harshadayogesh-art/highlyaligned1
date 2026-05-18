@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { createClient as createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
+import { getServiceClient } from '@/lib/supabase/service'
+import { z } from 'zod'
+import { logAudit } from '@/lib/audit'
 
-const supabaseService = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const patchBookingSchema = z.object({
+  updates: z.record(z.string(), z.unknown()).optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  time_slot: z.string().optional(),
+  service_id: z.string().uuid().optional(),
+  status: z.enum(['pending', 'confirmed', 'completed', 'cancelled', 'no_show']).optional(),
+}).passthrough()
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -14,7 +19,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: 'Booking ID required' }, { status: 400 })
     }
 
-    const supabase = await createServerClient()
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
@@ -31,12 +36,18 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const body = await req.json()
-    const updates = body.updates || body
+    const rawBody = await req.json()
+    const parsed = patchBookingSchema.safeParse(rawBody)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 })
+    }
 
-    // ── Conflict check on reschedule ──
+    const body = parsed.data
+    const updates = body.updates || body
+    const service = getServiceClient('bookings-update')
+
     if (updates.date || updates.time_slot) {
-      const { data: existingBooking, error: checkError } = await supabaseService
+      const { data: existingBooking, error: checkError } = await service
         .from('bookings')
         .select('id')
         .eq('id', id)
@@ -46,8 +57,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
       }
 
-      // Fetch the current booking to get service_id if not in updates
-      const { data: currentBooking } = await supabaseService
+      const { data: currentBooking } = await service
         .from('bookings')
         .select('service_id, date, time_slot')
         .eq('id', id)
@@ -57,7 +67,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       const checkTime = updates.time_slot || currentBooking?.time_slot
       const checkServiceId = updates.service_id || currentBooking?.service_id
 
-      const { data: conflict, error: conflictError } = await supabaseService
+      const { data: conflict, error: conflictError } = await service
         .from('bookings')
         .select('id')
         .eq('service_id', checkServiceId)
@@ -79,7 +89,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       }
     }
 
-    const { data: booking, error } = await supabaseService
+    const { data: booking, error } = await service
       .from('bookings')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
@@ -91,9 +101,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: error.message || 'Failed to update booking' }, { status: 500 })
     }
 
+    // Log audit trail
+    await logAudit({
+      userId: user.id,
+      userEmail: user.email || '',
+      action: 'UPDATE',
+      tableName: 'bookings',
+      recordId: id,
+      newData: updates as Record<string, unknown>,
+    })
+
     return NextResponse.json({ success: true, booking })
-  } catch (err) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Internal server error'
     console.error('Patch booking API error:', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

@@ -19,17 +19,17 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const image = post.cover_image
 
   return {
-    title: `${post.title} | HighlyAligned Blog`,
+    title: `${post.title} | Selfaligned Blog`,
     description: post.excerpt || '',
     openGraph: {
-      title: `${post.title} | HighlyAligned Blog`,
+      title: `${post.title} | Selfaligned Blog`,
       description: post.excerpt || '',
       images: image ? [image] : [],
       type: 'article',
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${post.title} | HighlyAligned Blog`,
+      title: `${post.title} | Selfaligned Blog`,
       description: post.excerpt || '',
       images: image ? [image] : [],
     },

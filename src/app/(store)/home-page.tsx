@@ -3,9 +3,6 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { useSettings } from '@/hooks/use-settings'
-import { useProducts } from '@/hooks/use-products'
-import { useServices } from '@/hooks/use-services'
 import { getOptimizedImage } from '@/lib/cloudinary'
 import {
   ShoppingBag,
@@ -23,9 +20,12 @@ import {
   Clock,
   ArrowUpRight,
 } from 'lucide-react'
-import LeadMagnetPopup from '@/components/store/lead-magnet-popup'
-import { usePageBlockMap, type BlockData } from '@/components/store/page-block'
+import dynamic from 'next/dynamic'
+
+const LeadMagnetPopup = dynamic(() => import('@/components/store/lead-magnet-popup'), { ssr: false })
+import type { BlockData } from '@/components/store/page-block'
 import type { ProductWithCategory } from '@/hooks/use-products'
+import type { ServiceRow } from '@/hooks/use-services'
 import { useCartStore } from '@/stores/cart-store'
 import { useRouter } from 'next/navigation'
 
@@ -154,11 +154,20 @@ function HomeProductGrid({ products }: { products: ProductWithCategory[] }) {
   )
 }
 
-export default function LandingPage() {
-  const blocks = usePageBlockMap('home')
-  const { data: settings } = useSettings()
+interface LandingPageProps {
+  settings: Record<string, unknown>
+  featuredProducts: ProductWithCategory[]
+  featuredServices: ServiceRow[]
+  blocks: Record<string, BlockData>
+}
 
-  const heroImages = settings?.hero_images
+export default function LandingPage({
+  settings,
+  featuredProducts,
+  featuredServices,
+  blocks,
+}: LandingPageProps) {
+  const heroImages = settings?.hero_images as Record<string, unknown> | undefined
   const desktopBanners =
     (heroImages?.desktops as string[]) ||
     (heroImages?.desktop ? [heroImages.desktop as string] : []) ||
@@ -169,22 +178,9 @@ export default function LandingPage() {
     (heroImages?.mobile ? [heroImages.mobile as string] : []) ||
     blocks['hero_banner']?.images ||
     []
-  const heroAlt = heroImages?.alt || 'HighlyAligned Spiritual Wellness'
+  const heroAlt = (heroImages?.alt as string) || 'Selfaligned Spiritual Wellness'
 
   const [currentSlide, setCurrentSlide] = useState(0)
-
-  const { data: productsData } = useProducts({ status: 'published', limit: 100 })
-  const allItems = productsData?.data || []
-  const normalizedItems = allItems.map((item) => ({
-    ...item,
-    categories: Array.isArray(item.categories) ? item.categories[0] : item.categories,
-  }))
-  const featuredProducts = normalizedItems.filter(
-    (item) => item.categories?.type === 'product' && item.metadata?.is_featured
-  )
-
-  const { data: servicesData } = useServices({ activeOnly: true })
-  const featuredServices = (servicesData || []).filter((s) => s.is_featured)
 
   useEffect(() => {
     if (desktopBanners.length <= 1) return
@@ -278,26 +274,26 @@ export default function LandingPage() {
         <div className="relative z-20 max-w-7xl mx-auto w-full text-white">
           <div className="max-w-2xl">
             <p className="text-xs md:text-sm text-white/80 mb-2 md:mb-3 font-medium tracking-wide uppercase">
-              {(blocks['hero_tagline']?.content?.text as string) || 'Welcome to your spiritual journey'}
+              {(blocks['hero_tagline']?.content?.text as string) || "Welcome to Your Soul's Journey"}
             </p>
             <h1 className="text-3xl md:text-6xl font-serif font-bold leading-tight mb-4 md:mb-8 drop-shadow-lg whitespace-pre-line">
-              {(blocks['hero_title']?.content?.text as string) || 'Align Your Energy,\nTransform Your Life'}
+              {(blocks['hero_title']?.content?.text as string) || 'Find Balance. Restore Energy.\nElevate Your Life.'}
             </h1>
             <p className="hidden md:block text-white/80 text-lg mb-8 max-w-lg leading-relaxed">
-              {(blocks['hero_description']?.content?.text as string) || 'Discover ancient wisdom through personalized astrology, energy healing, and sacred products curated to elevate your spiritual practice.'}
+              {(blocks['hero_description']?.content?.text as string) || 'Step into a space of deep healing and self-discovery. Explore our curated selection of sacred tools, personalized astrological insights, and restorative energy sessions tailored to support your unique spiritual path.'}
             </p>
             <div className="flex flex-row gap-3">
-              <Link href={(blocks['hero_cta_primary']?.content?.link as string) || '/kundali'}>
+              <Link href={(blocks['hero_cta_primary']?.content?.link as string) || '/services'}>
                 <Button className="bg-gradient-to-br from-amber-400 to-amber-600 text-violet-950 font-bold px-5 md:px-8 py-5 md:py-6 rounded-xl shadow-[0_4px_12px_rgba(251,191,36,0.35)] hover:scale-[1.03] transition-transform border-0 text-sm md:text-base">
-                  <Sparkles className="h-4 w-4 mr-2" /> {(blocks['hero_cta_primary']?.content?.text as string) || 'Free Kundali'}
+                  <Calendar className="h-4 w-4 mr-2" /> {(blocks['hero_cta_primary']?.content?.text as string) || 'Book Now'}
                 </Button>
               </Link>
-              <Link href={(blocks['hero_cta_secondary']?.content?.link as string) || '/services'}>
+              <Link href={(blocks['hero_cta_secondary']?.content?.link as string) || '/shop'}>
                 <Button
                   variant="outline"
                   className="bg-white/15 text-white backdrop-blur-md border border-white/25 font-bold px-5 md:px-8 py-5 md:py-6 rounded-xl hover:bg-white/25 hover:text-white transition-all text-sm md:text-base"
                 >
-                  <Calendar className="h-4 w-4 mr-2" /> {(blocks['hero_cta_secondary']?.content?.text as string) || 'Book Session'}
+                  <ShoppingBag className="h-4 w-4 mr-2" /> {(blocks['hero_cta_secondary']?.content?.text as string) || 'Buy Now'}
                 </Button>
               </Link>
             </div>
@@ -491,7 +487,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-slate-900 mb-3">
-              {(blocks['trust_title']?.content?.text as string) || 'Why Thousands Trust HighlyAligned'}
+              {(blocks['trust_title']?.content?.text as string) || 'Why Thousands Trust Selfaligned'}
             </h2>
             <p className="text-slate-500 max-w-2xl mx-auto">
               {(blocks['trust_subtitle']?.content?.text as string) || 'A blend of ancient Vedic wisdom and modern spiritual guidance, delivered with authenticity and care.'}

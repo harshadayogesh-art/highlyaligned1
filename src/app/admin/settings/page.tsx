@@ -438,7 +438,7 @@ function GSTTab({ settings }: { settings?: Record<string, unknown> }) {
           <Input
             value={config.business_name}
             onChange={(e) => setConfig((c) => ({ ...c, business_name: e.target.value }))}
-            placeholder="HighlyAligned Pvt Ltd"
+            placeholder="Selfaligned Pvt Ltd"
           />
         </div>
         <div className="space-y-2">
@@ -768,7 +768,7 @@ function NotificationsConfigTab() {
             </div>
             <div className="space-y-2">
               <Label>App Name</Label>
-              <Input value={(getVal('wa_app_name') as string) || ''} onChange={(e) => setVal('wa_app_name', e.target.value)} placeholder="HighlyAligned" />
+              <Input value={(getVal('wa_app_name') as string) || ''} onChange={(e) => setVal('wa_app_name', e.target.value)} placeholder="Selfaligned" />
             </div>
           </div>
         </div>
@@ -792,7 +792,7 @@ function NotificationsConfigTab() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Sender Email</Label>
-              <Input value={(getVal('email_sender') as string) || ''} onChange={(e) => setVal('email_sender', e.target.value)} placeholder="harshada@highlyaligned.in" />
+              <Input value={(getVal('email_sender') as string) || ''} onChange={(e) => setVal('email_sender', e.target.value)} placeholder="harshada@Selfaligned.in" />
             </div>
           </div>
         </div>

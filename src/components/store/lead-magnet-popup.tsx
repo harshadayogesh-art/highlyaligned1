@@ -589,7 +589,7 @@ export default function LeadMagnetPopup() {
           <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
             <Star className="h-5 w-5 text-amber-400" />
           </div>
-          <span className="font-bold text-lg">HighlyAligned</span>
+          <span className="font-bold text-lg">Selfaligned</span>
         </div>
         <h3 className="text-2xl font-serif font-bold leading-snug mb-4">
           Unlock Your

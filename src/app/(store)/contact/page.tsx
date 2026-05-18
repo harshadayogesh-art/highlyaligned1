@@ -119,7 +119,7 @@ export default function ContactPage() {
           </div>
 
           <a
-            href={`https://wa.me/${(socialLinks.whatsapp || '').replace('+', '')}?text=Hi%20HighlyAligned!%20I%20need%20guidance.`}
+            href={`https://wa.me/${(socialLinks.whatsapp || '').replace('+', '')}?text=Hi%20Selfaligned!%20I%20need%20guidance.`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors"

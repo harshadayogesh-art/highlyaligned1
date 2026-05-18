@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Contact Us | HighlyAligned',
+  title: 'Contact Us | Selfaligned',
   description: 'Get in touch with us for support, consultation queries, or business inquiries.',
 }
 

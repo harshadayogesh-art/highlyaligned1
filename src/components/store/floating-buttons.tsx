@@ -9,7 +9,7 @@ export default function FloatingButtons() {
     <div className="fixed bottom-24 right-4 z-40 flex flex-col gap-3 md:bottom-8 md:right-8">
       {/* WhatsApp */}
       <a
-        href={`https://wa.me/${phone.replace('+', '')}?text=Hi%20HighlyAligned!%20I%20need%20guidance.`}
+        href={`https://wa.me/${phone.replace('+', '')}?text=Hi%20Selfaligned!%20I%20need%20guidance.`}
         target="_blank"
         rel="noopener noreferrer"
         className="w-12 h-12 bg-[#25D366] rounded-full flex items-center justify-center text-white shadow-lg hover:bg-[#1ebe5b] hover:scale-110 transition-all"

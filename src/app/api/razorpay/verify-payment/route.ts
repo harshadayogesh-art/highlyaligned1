@@ -38,6 +38,16 @@ export async function POST(req: Request) {
     const supabase = await createClient()
 
     if (orderId) {
+      const { data: order } = await supabase
+        .from('orders')
+        .select('id, razorpay_order_id')
+        .eq('id', orderId)
+        .maybeSingle()
+
+      if (!order || order.razorpay_order_id !== razorpay_order_id) {
+        return NextResponse.json({ error: 'Order not found or payment mismatch' }, { status: 400 })
+      }
+
       await supabase
         .from('orders')
         .update({
@@ -52,6 +62,16 @@ export async function POST(req: Request) {
     }
 
     if (bookingId) {
+      const { data: booking } = await supabase
+        .from('bookings')
+        .select('id, razorpay_order_id')
+        .eq('id', bookingId)
+        .maybeSingle()
+
+      if (!booking || booking.razorpay_order_id !== razorpay_order_id) {
+        return NextResponse.json({ error: 'Booking not found or payment mismatch' }, { status: 400 })
+      }
+
       await supabase
         .from('bookings')
         .update({
@@ -62,17 +82,13 @@ export async function POST(req: Request) {
         })
         .eq('id', bookingId)
 
-      const { data: booking } = await supabase
-        .from('bookings')
-        .select('id')
-        .eq('id', bookingId)
-        .single()
-      if (booking) await triggerBookingNotification(booking.id)
+      await triggerBookingNotification(bookingId)
     }
 
     return NextResponse.json({ success: true })
-  } catch (err) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Payment verification failed'
     console.error('Razorpay verify payment error:', err)
-    return NextResponse.json({ error: 'Payment verification failed' }, { status: 500 })
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

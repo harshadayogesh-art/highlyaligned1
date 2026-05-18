@@ -28,7 +28,7 @@ export async function POST(req: Request) {
       amount: amountInPaise,
       currency,
       receipt: receipt ? receipt.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) : undefined,
-      notes: { source: 'highlyaligned' },
+      notes: { source: 'Selfaligned' },
     })
 
     return NextResponse.json({

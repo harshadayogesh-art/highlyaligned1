@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { CartIcon } from './cart-icon'
 import { MiniCart } from './mini-cart'
-import { useSettings } from '@/hooks/use-settings'
 import { useAuth } from '@/hooks/use-auth'
 
 const navLinks = [
@@ -20,14 +19,17 @@ const navLinks = [
   { href: '/contact',  label: 'Contact' },
 ]
 
-export function StoreHeader() {
+interface StoreHeaderProps {
+  settings?: Record<string, unknown>
+}
+
+export function StoreHeader({ settings }: StoreHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const pathname = usePathname()
   const router = useRouter()
-  const { data: settings } = useSettings()
   const { user, isAdmin } = useAuth()
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -42,23 +44,29 @@ export function StoreHeader() {
   const logoConfig = settings?.logo_config as Record<string, string> | undefined
 
   return (
-    <header className="sticky top-0 z-50 bg-gradient-to-r from-violet-900 to-violet-800 shadow-lg">
+    <header className="sticky top-0 z-50 bg-black shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
 
         {/* Logo */}
-        <Link href="/" className="flex items-center shrink-0 group">
+        <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
           {logoConfig?.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={logoConfig.logo_url}
               alt="Logo"
-              className="h-16 w-auto object-contain group-hover:scale-105 transition-transform"
+              className="h-12 md:h-14 w-auto object-contain group-hover:scale-105 transition-transform"
             />
           ) : (
-            <span className="text-xl font-bold tracking-tight text-white font-serif">
-              ✨ HighlyAligned
-            </span>
+            <span className="text-2xl">✨</span>
           )}
+          <div className="flex flex-col leading-none">
+            <span className="text-lg md:text-xl font-bold tracking-tight text-white font-serif">
+              Selfaligned
+            </span>
+            <span className="text-[10px] md:text-xs text-amber-300/90 font-medium tracking-wider uppercase">
+              Spiritual Wellness
+            </span>
+          </div>
         </Link>
 
         {/* Desktop Nav — centred */}
@@ -141,7 +149,7 @@ export function StoreHeader() {
 
       {/* Mobile dropdown nav */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-white/10 px-4 py-3 space-y-1 bg-violet-900/95 backdrop-blur-sm">
+        <div className="md:hidden border-t border-white/10 px-4 py-3 space-y-1 bg-black/95 backdrop-blur-sm">
           {navLinks.map(link => {
             const isActive = pathname === link.href || pathname.startsWith(link.href + '/')
             return (
@@ -168,7 +176,7 @@ export function StoreHeader() {
 
       {/* Mobile Search Overlay */}
       {mobileSearchOpen && (
-        <div className="md:hidden fixed inset-0 z-[60] bg-violet-900/95 backdrop-blur-sm flex flex-col">
+        <div className="md:hidden fixed inset-0 z-[60] bg-black/95 backdrop-blur-sm flex flex-col">
           <div className="flex items-center gap-3 px-4 h-20">
             <form onSubmit={handleSearchSubmit} className="flex-1">
               <div className="flex items-center bg-white/10 rounded-full px-4 py-2.5">

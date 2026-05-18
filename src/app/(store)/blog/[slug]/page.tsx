@@ -139,7 +139,7 @@ export default function BlogPostPage() {
   }, [relatedPosts, post])
 
   const readTime = useMemo(() => estimateReadTime(post?.content || null), [post?.content])
-  const shareText = post ? `${post.title} — HighlyAligned` : ''
+  const shareText = post ? `${post.title} — Selfaligned` : ''
 
   // Loading state
   if (isLoading || !post) {

@@ -1,4 +1,4 @@
-// HighlyAligned — Manual Database Types
+// Selfaligned — Manual Database Types
 // Matches supabase-schema.sql + phase6-schema.sql
 // Update when schema changes.
 

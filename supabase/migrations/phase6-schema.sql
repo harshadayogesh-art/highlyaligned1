@@ -31,7 +31,7 @@ insert into legal_pages (slug, title, content) values
 'EFFECTIVE DATE: January 1, 2026
 
 1. INTRODUCTION
-Welcome to HighlyAligned. These Terms and Conditions govern your use of our website and services.
+Welcome to Selfaligned. These Terms and Conditions govern your use of our website and services.
 
 2. USE OF SERVICES
 By accessing our website, you agree to be bound by these terms. All services are subject to availability.
@@ -43,7 +43,7 @@ We offer spiritual products, astrology consultations, and healing sessions. All 
 We accept online payments via Razorpay and Cash on Delivery. Prices are in INR and inclusive of applicable taxes.
 
 5. INTELLECTUAL PROPERTY
-All content, logos, and designs are the property of HighlyAligned and may not be used without permission.
+All content, logos, and designs are the property of Selfaligned and may not be used without permission.
 
 6. LIMITATION OF LIABILITY
 Our spiritual guidance is for informational purposes. We do not guarantee specific outcomes.
@@ -52,7 +52,7 @@ Our spiritual guidance is for informational purposes. We do not guarantee specif
 These terms are governed by the laws of India. Disputes shall be resolved in Ahmedabad, Gujarat.
 
 8. CONTACT
-For questions about these terms, contact us at harshada@highlyaligned.in'),
+For questions about these terms, contact us at harshada@Selfaligned.in'),
 
 ('privacy', 'Privacy Policy',
 'EFFECTIVE DATE: January 1, 2026
@@ -82,7 +82,7 @@ We use cookies to enhance your browsing experience. You can disable cookies in y
 We may update this policy periodically. Changes will be posted on this page.
 
 8. CONTACT
-For privacy concerns, email harshada@highlyaligned.in'),
+For privacy concerns, email harshada@Selfaligned.in'),
 
 ('shipping', 'Shipping & Delivery Policy',
 '1. PROCESSING TIME
@@ -138,16 +138,16 @@ Bookings can be cancelled 24 hours before the scheduled time for a full refund.
 If you miss your consultation without prior notice, no refund will be issued.
 
 8. CONTACT
-For refund queries, email harshada@highlyaligned.in or WhatsApp +91 84688 83571.')
+For refund queries, email harshada@Selfaligned.in or WhatsApp +91 84688 83571.')
 on conflict (slug) do nothing;
 
 -- 3. Insert default settings
 insert into settings (key, value) values
-('footer_config', '{"name":"HighlyAligned","address":"Navrangpura, Ahmedabad, Gujarat, India","email":"harshada@highlyaligned.in","phone":"+91 84688 83571","tagline":"Align Your Energy, Transform Your Life","show_newsletter":true}'::jsonb),
+('footer_config', '{"name":"Selfaligned","address":"Navrangpura, Ahmedabad, Gujarat, India","email":"harshada@Selfaligned.in","phone":"+91 84688 83571","tagline":"Align Your Energy, Transform Your Life","show_newsletter":true}'::jsonb),
 ('social_links', '{"instagram":"","facebook":"","youtube":"","whatsapp":"+918468883571","twitter":"","linkedin":""}'::jsonb),
-('cloudinary_config', '{"cloud_name":"","api_key":"","upload_preset":"highlyaligned_unsigned","folder":"highlyaligned"}'::jsonb),
+('cloudinary_config', '{"cloud_name":"","api_key":"","upload_preset":"Selfaligned_unsigned","folder":"Selfaligned"}'::jsonb),
 ('contact_info', '{"map_embed_url":"https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3671.0!2d72.5714!3d23.0225!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjPCsDAxJzIxLjAiTiA3MsKwMzQnMTcuMCJF!5e0!3m2!1sen!2sin!4v1600000000000!5m2!1sen!2sin","business_hours":"Mon-Sat: 10:00 AM - 7:00 PM","response_time":"We respond within 24 hours"}'::jsonb),
-('hero_images', '{"desktop":"","mobile":"","alt":"HighlyAligned Spiritual Wellness"}'::jsonb),
+('hero_images', '{"desktop":"","mobile":"","alt":"Selfaligned Spiritual Wellness"}'::jsonb),
 ('logo_config', '{"logo_url":"","favicon_url":""}'::jsonb),
 ('gemini_config', '{"provider":"gemini","api_key":"","model":"gemini-1.5-flash","temperature":0.7,"max_tokens":1024,"default_language":"english"}'::jsonb)
 on conflict (key) do nothing;

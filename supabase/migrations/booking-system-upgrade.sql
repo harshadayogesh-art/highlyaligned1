@@ -1,4 +1,4 @@
--- HighlyAligned Booking System Upgrade
+-- Selfaligned Booking System Upgrade
 -- Run this SQL in Supabase SQL Editor
 
 -- 1. Add availability columns to services table

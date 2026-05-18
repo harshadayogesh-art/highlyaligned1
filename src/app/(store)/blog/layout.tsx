@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Spiritual Insights & Astrology Blog | HighlyAligned',
+  title: 'Spiritual Insights & Astrology Blog | Selfaligned',
   description: 'Read the latest insights on Vedic astrology, spiritual growth, remedies, and wellness from Harshada.',
 }
 

@@ -42,7 +42,7 @@ export async function POST(req: Request) {
 
     // System context (sent as first content part)
     const systemText =
-      'You are a product content writer for HighlyAligned, an Indian spiritual wellness brand. ' +
+      'You are a product content writer for Selfaligned, an Indian spiritual wellness brand. ' +
       'Write warm, authentic, SEO-friendly content for spiritual products like crystals, ' +
       'yantras, rudraksha, and malas. Always respond with a single valid JSON object.'
 
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
       'Return ONLY a JSON object with these exact keys:\n' +
       '- description: 2 short paragraphs about the product origin, significance and benefits\n' +
       '- how_to_use: numbered steps (1. cleanse 2. activate 3. daily use)\n' +
-      '- energization_process: one sentence on how HighlyAligned energizes it before shipping\n' +
+      '- energization_process: one sentence on how Selfaligned energizes it before shipping\n' +
       '- sku_suggestion: short SKU like HA-CRY-001\n' +
       '- weight_estimate_grams: integer shipping weight\n\n' +
       'Output only the JSON, no explanation.'

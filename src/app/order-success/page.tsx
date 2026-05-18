@@ -75,7 +75,7 @@ function OrderSuccessPageContent() {
 
   const isPaid = order.payment_status === 'captured'
   const shareText = encodeURIComponent(
-    `I just placed an order #${order.order_number} on HighlyAligned!`
+    `I just placed an order #${order.order_number} on Selfaligned!`
   )
 
   return (

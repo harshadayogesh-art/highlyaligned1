@@ -33,7 +33,7 @@ export default function MyReferralPage() {
   const totalEarnings = referrals?.reduce((s, r) => s + (r.commission_amount || 0), 0) || 0
   const pendingEarnings = referrals?.filter((r) => r.status === 'pending').reduce((s, r) => s + (r.commission_amount || 0), 0) || 0
 
-  const shareText = encodeURIComponent(`Join me on HighlyAligned! Use my code ${code} and get a special discount on your first order.`)
+  const shareText = encodeURIComponent(`Join me on Selfaligned! Use my code ${code} and get a special discount on your first order.`)
   const [shareUrl, setShareUrl] = useState('')
   useEffect(() => { setShareUrl(`${window.location.origin}/?ref=${code}`) }, [code])
 

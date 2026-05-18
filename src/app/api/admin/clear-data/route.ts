@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { supabaseService } from '@/lib/supabase/service'
+import { getServiceClient } from '@/lib/supabase/service'
+
+import { z } from 'zod'
+import { rateLimit } from '@/lib/rate-limit'
+import { logAudit } from '@/lib/audit'
+
+const clearDataSchema = z.object({
+  tables: z.array(z.string().min(1)).min(1).max(5),
+})
 
 const ALLOWED_TABLES = [
   'order_items',
@@ -31,17 +39,25 @@ export async function POST(req: Request) {
       .eq('id', user.id)
       .single()
 
-    if (!profile || !['admin', 'editor'].includes(profile.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!profile || profile.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden — admin only' }, { status: 403 })
     }
 
-    const body = await req.json()
-    const { tables } = body as { tables: string[] }
-
-    if (!tables || !Array.isArray(tables) || tables.length === 0) {
-      return NextResponse.json({ error: 'No tables selected' }, { status: 400 })
+    const ip = req.headers.get('x-forwarded-for') || 'unknown'
+    const rl = rateLimit(`clear-data:${ip}`, 3, 60 * 60 * 1000)
+    if (!rl.success) {
+      return NextResponse.json({ error: 'Rate limit exceeded. Max 3 attempts per hour.' }, { status: 429 })
     }
 
+    const rawBody = await req.json()
+    const parsed = clearDataSchema.safeParse(rawBody)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 })
+    }
+
+    const { tables } = parsed.data
+
+    const service = getServiceClient('admin-clear-data')
     const results: Record<string, { success: boolean; count?: number; error?: string }> = {}
 
     for (const table of tables) {
@@ -51,7 +67,7 @@ export async function POST(req: Request) {
       }
 
       try {
-        const { error, count } = await supabaseService
+        const { error, count } = await service
           .from(table)
           .delete({ count: 'exact' })
           .neq('id', '00000000-0000-0000-0000-000000000000')
@@ -61,14 +77,28 @@ export async function POST(req: Request) {
         } else {
           results[table] = { success: true, count: count || 0 }
         }
-      } catch (err: any) {
-        results[table] = { success: false, error: err.message }
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Unknown error'
+        results[table] = { success: false, error: message }
       }
     }
 
+    // Log audit trail
+    await logAudit({
+      userId: user.id,
+      userEmail: user.email || '',
+      action: 'DELETE',
+      tableName: tables.join(', '),
+      recordId: undefined,
+      oldData: { tables, results },
+      newData: { cleared: true },
+      ipAddress: ip,
+    })
+
     return NextResponse.json({ success: true, results })
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Internal server error'
     console.error('Clear data error:', err)
-    return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

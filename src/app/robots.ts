@@ -1,5 +1,5 @@
 export default function robots() {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://highlyaligned.in'
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://Selfaligned.in'
   return {
     rules: [
       { userAgent: '*', allow: '/' },

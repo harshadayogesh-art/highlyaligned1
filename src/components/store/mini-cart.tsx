@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -13,6 +14,7 @@ interface MiniCartProps {
 }
 
 export function MiniCart({ open, onOpenChange }: MiniCartProps) {
+  const [mounted, setMounted] = useState(false)
   const items = useCartStore((s) => s.items)
   const updateQty = useCartStore((s) => s.updateQty)
   const removeItem = useCartStore((s) => s.removeItem)
@@ -20,6 +22,11 @@ export function MiniCart({ open, onOpenChange }: MiniCartProps) {
   const shipping = useCartStore((s) => s.shipping())
   const finalTotal = useCartStore((s) => s.finalTotal())
   const itemCount = useCartStore((s) => s.itemCount())
+
+  useEffect(() => {
+    setMounted(true)
+    useCartStore.persist?.rehydrate?.()
+  }, [])
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -31,7 +38,9 @@ export function MiniCart({ open, onOpenChange }: MiniCartProps) {
         <SheetHeader className="px-4 py-4 border-b border-slate-100">
           <div className="flex items-center justify-between">
             <SheetTitle className="text-base font-semibold text-slate-900">
-              Your Cart ({itemCount} {itemCount === 1 ? 'item' : 'items'})
+              {mounted
+                ? `Your Cart (${itemCount} ${itemCount === 1 ? 'item' : 'items'})`
+                : 'Your Cart'}
             </SheetTitle>
             <button
               onClick={() => onOpenChange(false)}

@@ -20,17 +20,17 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const image = product.images?.[0]
 
   return {
-    title: `${product.name} | HighlyAligned`,
+    title: `${product.name} | Selfaligned`,
     description: plainDesc,
     openGraph: {
-      title: `${product.name} | HighlyAligned`,
+      title: `${product.name} | Selfaligned`,
       description: plainDesc,
       images: image ? [image] : [],
       type: 'website',
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${product.name} | HighlyAligned`,
+      title: `${product.name} | Selfaligned`,
       description: plainDesc,
       images: image ? [image] : [],
     },
@@ -60,7 +60,7 @@ export default async function ProductLayout({
     "description": product.description.replace(/<[^>]+>/g, ''),
     "offers": {
       "@type": "Offer",
-      "url": `https://highlyaligned.in/shop/${p.slug}`,
+      "url": `https://Selfaligned.in/shop/${p.slug}`,
       "priceCurrency": "INR",
       "price": product.price,
       "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"

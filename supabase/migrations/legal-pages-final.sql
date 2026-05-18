@@ -50,14 +50,14 @@ CREATE TRIGGER legal_pages_updated_at
 INSERT INTO legal_pages (slug, title, content, meta_description, is_published) VALUES
 ('terms', 'Terms and Conditions',
 '**Effective Date:** January 1, 2026
-**Business Name:** HighlyAligned
+**Business Name:** Selfaligned
 **Registered Address:** Pimpri-Chinchwad, Maharashtra, India
 **Contact:** self.aligned1111@gmail.com | +91 84688 83571
 
 ---
 
 ## 1. Definitions
-- **"Platform"** refers to HighlyAligned.in and all associated services.
+- **"Platform"** refers to Selfaligned.in and all associated services.
 - **"User"** means any person accessing or using the Platform.
 - **"Services"** refers to astrology consultations, energy healing sessions, and spiritual guidance.
 - **"Products"** refers to crystals, malas, energized items, and other physical goods sold on the Platform.
@@ -66,7 +66,7 @@ INSERT INTO legal_pages (slug, title, content, meta_description, is_published) V
 You must be at least 18 years of age to use this Platform. If you are under 18, you may use the Platform only with the involvement and consent of a parent or legal guardian.
 
 ## 3. Nature of Astrology Services
-All astrology consultations, readings, and spiritual guidance provided through HighlyAligned are for **entertainment, spiritual insight, and self-reflection purposes only**. They do **not** constitute professional medical, legal, financial, or psychological advice. Accuracy of readings depends entirely on the birth data and other information provided by you.
+All astrology consultations, readings, and spiritual guidance provided through Selfaligned are for **entertainment, spiritual insight, and self-reflection purposes only**. They do **not** constitute professional medical, legal, financial, or psychological advice. Accuracy of readings depends entirely on the birth data and other information provided by you.
 
 ## 4. E-Commerce Terms
 - Product descriptions, images, and prices are accurate to the best of our knowledge.
@@ -86,10 +86,10 @@ All astrology consultations, readings, and spiritual guidance provided through H
 - Cash on Delivery (COD) is available for select orders up to Rs. 5,000.
 
 ## 7. Intellectual Property
-All content, logos, designs, text, images, and software on this Platform are the exclusive property of HighlyAligned and protected under Indian copyright and trademark laws. Unauthorized use, reproduction, or distribution is strictly prohibited.
+All content, logos, designs, text, images, and software on this Platform are the exclusive property of Selfaligned and protected under Indian copyright and trademark laws. Unauthorized use, reproduction, or distribution is strictly prohibited.
 
 ## 8. Limitation of Liability
-To the maximum extent permitted by law, HighlyAligned''s total liability for any claim arising from your use of the Platform shall not exceed the amount you paid for the specific product or service in question. We are **not liable** for any life decisions, business outcomes, or health choices made based on astrological guidance.
+To the maximum extent permitted by law, Selfaligned''s total liability for any claim arising from your use of the Platform shall not exceed the amount you paid for the specific product or service in question. We are **not liable** for any life decisions, business outcomes, or health choices made based on astrological guidance.
 
 ## 9. Governing Law & Jurisdiction
 These Terms are governed by the laws of the **Republic of India**. Any dispute shall first be attempted to be resolved through good-faith negotiation. Failing that, disputes shall be settled through binding arbitration in **Pune, Maharashtra**, in accordance with the Arbitration and Conciliation Act, 1996.
@@ -100,17 +100,17 @@ In accordance with the Information Technology Act, 2000:
 - **Email:** self.aligned1111@gmail.com
 - **Address:** Pimpri-Chinchwad, Maharashtra, India
 - **Response Time:** 48-72 business hours',
-'Terms and Conditions for HighlyAligned.in — Astrology e-commerce and services platform. Covers eligibility, service nature, payments via Razorpay, IP, liability, and governing law.',
+'Terms and Conditions for Selfaligned.in — Astrology e-commerce and services platform. Covers eligibility, service nature, payments via Razorpay, IP, liability, and governing law.',
 true),
 
 ('privacy', 'Privacy Policy',
 '**Effective Date:** January 1, 2026
-**Business Name:** HighlyAligned
+**Business Name:** Selfaligned
 
 ---
 
 ## 1. Introduction
-HighlyAligned ("we," "us," "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, store, and protect your personal information when you use our website and services. We comply with the **Digital Personal Data Protection Act (DPDP Act), 2023** of India.
+Selfaligned ("we," "us," "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, store, and protect your personal information when you use our website and services. We comply with the **Digital Personal Data Protection Act (DPDP Act), 2023** of India.
 
 ## 2. Information We Collect
 - **Identity Data:** Name, email address, phone number.
@@ -166,11 +166,11 @@ For any privacy-related concerns or complaints:
 - **Email:** self.aligned1111@gmail.com
 - **Address:** Pimpri-Chinchwad, Maharashtra, India
 - **Response Time:** 48-72 business hours',
-'Privacy Policy for HighlyAligned.in. Compliant with DPDP Act 2023. Covers data collection, processing, localization, user rights, retention, and security.',
+'Privacy Policy for Selfaligned.in. Compliant with DPDP Act 2023. Covers data collection, processing, localization, user rights, retention, and security.',
 true),
 
 ('shipping', 'Shipping & Delivery Policy',
-'**Business Name:** HighlyAligned
+'**Business Name:** Selfaligned
 **Contact:** self.aligned1111@gmail.com | +91 84688 83571
 
 ---
@@ -213,7 +213,7 @@ A tracking number is shared via **email and WhatsApp** within 24 hours of shipme
 ## 8. Non-Physical (Digital) Items
 Digital astrology reports and readings are delivered via:
 - Email to the registered email address.
-- Access through your user dashboard on HighlyAligned.in.
+- Access through your user dashboard on Selfaligned.in.
 - No physical shipping applies.
 
 ## 9. Failed Delivery Attempts
@@ -225,11 +225,11 @@ Digital astrology reports and readings are delivered via:
 For shipping-related queries:
 - Email: self.aligned1111@gmail.com
 - WhatsApp: +91 84688 83571',
-'Shipping and Delivery Policy for HighlyAligned.in. Covers delivery areas, timelines, charges, COD, tracking, damaged shipments, and failed delivery handling.',
+'Shipping and Delivery Policy for Selfaligned.in. Covers delivery areas, timelines, charges, COD, tracking, damaged shipments, and failed delivery handling.',
 true),
 
 ('refund', 'Cancellation & Refund Policy',
-'**Business Name:** HighlyAligned
+'**Business Name:** Selfaligned
 **Contact:** self.aligned1111@gmail.com | +91 84688 83571
 
 ---
@@ -283,5 +283,5 @@ For refund and cancellation queries:
 - Email: self.aligned1111@gmail.com
 - WhatsApp: +91 84688 83571
 - Response time: 48-72 business hours',
-'Cancellation and Refund Policy for HighlyAligned.in. Covers digital products, physical returns, consultation cancellation table, refund timelines, and dispute handling.',
+'Cancellation and Refund Policy for Selfaligned.in. Covers digital products, physical returns, consultation cancellation table, refund timelines, and dispute handling.',
 true);

@@ -24,8 +24,10 @@ export async function POST(req: Request) {
   if (event.event === 'payment.captured') {
     const supabase = await createClient()
     const payment = event.payload.payment.entity
+    const notes = payment.notes as Record<string, string> | undefined
+    const type = notes?.type || 'order'
 
-    await supabase
+    const orderUpdate = supabase
       .from('orders')
       .update({
         payment_status: 'captured',
@@ -34,7 +36,7 @@ export async function POST(req: Request) {
       })
       .eq('razorpay_order_id', payment.order_id)
 
-    await supabase
+    const bookingUpdate = supabase
       .from('bookings')
       .update({
         payment_status: 'captured',
@@ -42,12 +44,23 @@ export async function POST(req: Request) {
       })
       .eq('razorpay_order_id', payment.order_id)
 
-    // Find the order id
-    const { data: order } = await supabase.from('orders').select('id').eq('razorpay_order_id', payment.order_id).single()
-    if (order) await triggerOrderNotification(order.id, 'placed')
-
-    const { data: booking } = await supabase.from('bookings').select('id').eq('razorpay_order_id', payment.order_id).single()
-    if (booking) await triggerBookingNotification(booking.id)
+    if (type === 'booking') {
+      await bookingUpdate
+      const { data: booking } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('razorpay_order_id', payment.order_id)
+        .maybeSingle()
+      if (booking) await triggerBookingNotification(booking.id)
+    } else {
+      await orderUpdate
+      const { data: order } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('razorpay_order_id', payment.order_id)
+        .maybeSingle()
+      if (order) await triggerOrderNotification(order.id, 'placed')
+    }
   }
 
   return new Response('OK')

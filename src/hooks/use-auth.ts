@@ -4,12 +4,12 @@ import { useEffect } from 'react'
 import { useAuthStore } from '@/stores/auth-store'
 import { createClient } from '@/lib/supabase/client'
 
+const supabase = createClient()
+
 export function useAuth() {
   const { setUser, setProfile } = useAuthStore()
 
   useEffect(() => {
-    const supabase = createClient()
-
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user as unknown as Parameters<typeof setUser>[0])

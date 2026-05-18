@@ -1,4 +1,4 @@
--- HighlyAligned Database Schema
+-- Selfaligned Database Schema
 -- Run this in Supabase SQL Editor
 
 -- 1. PROFILES (extends Supabase auth.users)

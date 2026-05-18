@@ -1,15 +1,33 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { createClient as createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
+import { getServiceClient } from '@/lib/supabase/service'
+import { z } from 'zod'
+import { logAudit } from '@/lib/audit'
 
-const supabaseService = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const createBookingSchema = z.object({
+  booking_number: z.string().optional(),
+  customer_id: z.string().uuid(),
+  service_id: z.string().uuid(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
+  time_slot: z.string().min(1, 'Time slot is required'),
+  status: z.enum(['pending', 'confirmed', 'completed', 'cancelled', 'no_show']).optional(),
+  mode: z.enum(['video', 'audio', 'in_person']).optional(),
+  intake_data: z.record(z.string(), z.unknown()).optional(),
+  payment_status: z.enum(['pending', 'paid', 'refunded', 'failed']).optional(),
+  amount: z.number().min(0).optional(),
+})
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json()
+    const rawBody = await req.json()
+    const parsed = createBookingSchema.safeParse(rawBody)
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: parsed.error.flatten() },
+        { status: 400 }
+      )
+    }
+
     const {
       booking_number,
       customer_id,
@@ -21,24 +39,15 @@ export async function POST(req: Request) {
       intake_data,
       payment_status,
       amount,
-    } = body
+    } = parsed.data
 
-    if (!customer_id || !service_id || !date || !time_slot) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      )
-    }
-
-    // Authenticate user
-    const supabase = await createServerClient()
+    const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Users can only create bookings for themselves (unless admin)
     if (user.id !== customer_id) {
       const { data: profile } = await supabase
         .from('profiles')
@@ -51,8 +60,9 @@ export async function POST(req: Request) {
       }
     }
 
-    // ── Double-booking prevention ──
-    const { data: existingBooking, error: checkError } = await supabaseService
+    const service = getServiceClient('bookings-create')
+
+    const { data: existingBooking, error: checkError } = await service
       .from('bookings')
       .select('id')
       .eq('service_id', service_id)
@@ -76,7 +86,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const { data: booking, error } = await supabaseService
+    const { data: booking, error } = await service
       .from('bookings')
       .insert({
         booking_number,
@@ -101,12 +111,20 @@ export async function POST(req: Request) {
       )
     }
 
+    // Log audit trail
+    await logAudit({
+      userId: user.id,
+      userEmail: user.email || '',
+      action: 'CREATE',
+      tableName: 'bookings',
+      recordId: booking.id,
+      newData: booking as Record<string, unknown>,
+    })
+
     return NextResponse.json({ success: true, booking })
-  } catch (err) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Internal server error'
     console.error('Create booking API error:', err)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

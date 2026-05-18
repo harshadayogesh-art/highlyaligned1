@@ -15,6 +15,7 @@ import { Separator } from '@/components/ui/separator'
 import { StatusTimeline } from './status-timeline'
 import { formatDateTime } from '@/lib/utils/format'
 import { useOrder, useUpdateAdminNotes, useUpdateOrderStatus } from '@/hooks/use-orders'
+import { useOrderStatusHistory } from '@/hooks/use-order-history'
 import {
   Printer,
   MessageCircle,
@@ -115,6 +116,7 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
 
 export function OrderDetailDrawer({ orderId, open, onOpenChange, onRequestShip }: OrderDetailDrawerProps) {
   const { data: order, isPending } = useOrder(orderId || '')
+  const { data: statusHistory } = useOrderStatusHistory(orderId)
   const updateNotes = useUpdateAdminNotes()
   const updateStatus = useUpdateOrderStatus()
   const [notes, setNotes] = useState('')
@@ -420,6 +422,47 @@ export function OrderDetailDrawer({ orderId, open, onOpenChange, onRequestShip }
                   </Button>
                 </div>
               </Section>
+
+              {/* Status History */}
+              {statusHistory && statusHistory.length > 0 && (
+                <Section title='Status History' icon={<CheckCircle className='h-4 w-4 text-[#f59e0b]' />}>
+                  <div className='space-y-2'>
+                    {statusHistory.map((entry) => (
+                      <div key={entry.id} className='flex items-start gap-2 text-sm'>
+                        <div className='w-2 h-2 rounded-full bg-[#f59e0b] mt-1.5 shrink-0' />
+                        <div className='flex-1'>
+                          <div className='flex items-center gap-2 flex-wrap'>
+                            <Badge className={`text-[10px] h-5 ${statusColors[entry.new_status] || 'bg-slate-100'}`}>
+                              {entry.new_status.replace(/_/g, ' ')}
+                            </Badge>
+                            {entry.old_status && (
+                              <>
+                                <ArrowRight className='h-3 w-3 text-slate-400' />
+                                <span className='text-xs text-slate-500'>
+                                  from {entry.old_status.replace(/_/g, ' ')}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                          <div className='flex items-center gap-2 mt-0.5'>
+                            <span className='text-xs text-slate-500'>
+                              {formatDateTime(entry.created_at)}
+                            </span>
+                            {entry.changed_by_name && (
+                              <span className='text-xs text-slate-400'>
+                                by {entry.changed_by_name}
+                              </span>
+                            )}
+                          </div>
+                          {entry.notes && (
+                            <p className='text-xs text-slate-500 mt-0.5'>{entry.notes}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Section>
+              )}
             </div>
 
             {/* Footer Actions */}

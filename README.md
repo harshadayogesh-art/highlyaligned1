@@ -1,4 +1,4 @@
-# HighlyAligned
+# Selfaligned
 
 **Spiritual Wellness, E-Commerce & Booking Platform**
 
@@ -77,10 +77,10 @@ MSG91_AUTH_KEY=
 MSG91_TEMPLATE_ID=
 MSG91_SENDER_ID=HGHLYA
 RESEND_API_KEY=
-FROM_EMAIL=Harshada <harshada@highlyaligned.in>
+FROM_EMAIL=Harshada <harshada@Selfaligned.in>
 
 # App
-NEXT_PUBLIC_SITE_URL=https://highlyaligned.in
+NEXT_PUBLIC_SITE_URL=https://Selfaligned.in
 CRON_SECRET=your-random-secret-here
 ```
 

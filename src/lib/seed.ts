@@ -9,10 +9,10 @@ export async function seedDatabase(supabase: { from: (table: string) => { upsert
     {
       key: 'business_info',
       value: {
-        name: 'HighlyAligned',
+        name: 'Selfaligned',
         owner: 'Harshada Yogesh',
         phone: '+91 84688 83571',
-        email: 'harshada@highlyaligned.in',
+        email: 'harshada@Selfaligned.in',
         address: 'Navrangpura, Ahmedabad, Gujarat',
         hours: '10:00 AM - 7:00 PM',
       },

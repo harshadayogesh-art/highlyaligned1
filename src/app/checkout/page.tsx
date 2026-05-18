@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -23,6 +23,7 @@ import { useValidateCoupon } from '@/hooks/use-coupons'
 import { toast } from 'sonner'
 import { CreditCard, Banknote, Tag, CheckCircle, LogIn, UserPlus, User, ShoppingBag, Loader2, MapPin, Plus, Info } from 'lucide-react'
 import { useAddresses, useCreateAddress } from '@/hooks/use-addresses'
+import { createClient } from '@/lib/supabase/client'
 
 const INDIAN_STATES = [
   'Andhra Pradesh',
@@ -61,6 +62,7 @@ export default function CheckoutPage() {
   const { user, profile, isLoading } = useAuth()
   const items = useCartStore((s) => s.items)
   const clearCart = useCartStore((s) => s.clearCart)
+  const syncPrices = useCartStore((s) => s.syncPrices)
   const { data: settings } = useSettings()
   const gstEnabled = settings?.gst_enabled ?? false
   const [step, setStep] = useState<CheckoutStep>('auth')
@@ -73,6 +75,7 @@ export default function CheckoutPage() {
   const [showAddressForm, setShowAddressForm] = useState(false)
   const { data: savedAddresses } = useAddresses(user?.id)
   const createAddress = useCreateAddress()
+  const idempotencyKey = useRef(crypto.randomUUID())
 
   // Skip auth step if already logged in
   useEffect(() => {
@@ -87,6 +90,34 @@ export default function CheckoutPage() {
       router.push('/shop')
     }
   }, [items, router, orderJustPlaced])
+
+  // Re-validate cart prices from server on mount
+  useEffect(() => {
+    if (items.length === 0) return
+    const productIds = items.map((i) => i.productId)
+    const supabase = createClient()
+    Promise.resolve(
+      supabase
+        .from('products')
+        .select('id, price, mrp, stock')
+        .in('id', productIds)
+    )
+      .then(({ data: products }) => {
+        if (products) {
+          const changed = products.filter((p) => {
+            const item = items.find((i) => i.productId === p.id)
+            return item && (item.price !== p.price || item.mrp !== p.mrp)
+          })
+          if (changed.length > 0) {
+            syncPrices(products.map((p) => ({ productId: p.id, price: p.price, mrp: p.mrp, stock: p.stock })))
+            toast.info('Cart prices have been updated to reflect current values.')
+          }
+        }
+      })
+      .catch(() => {
+        // silently fail; prices will be re-validated server-side on order creation
+      })
+  }, [])
 
   const {
     register,
@@ -179,7 +210,7 @@ export default function CheckoutPage() {
           address: values.address,
           paymentMode: values.paymentMode,
           couponCode: appliedCoupon?.code || null,
-          customerId: user?.id || null,
+          idempotencyKey: idempotencyKey.current,
         }),
       })
 
@@ -207,7 +238,7 @@ export default function CheckoutPage() {
       openRazorpayCheckout({
         orderId: data.razorpayOrderId,
         amountInPaise: data.razorpayAmount ?? Math.round(data.finalTotal * 100),
-        name: 'HighlyAligned',
+        name: 'Selfaligned',
         description: `Order ${data.orderNumber}`,
         prefill: {
           name: values.address.name,
@@ -623,6 +654,24 @@ export default function CheckoutPage() {
                 <span>Rs.{finalTotal.toFixed(2)}</span>
               </div>
             </div>
+            
+            <div className='pt-2'>
+              <label className='flex items-start gap-2 cursor-pointer'>
+                <Checkbox
+                  checked={watch('acceptTerms') === true}
+                  onCheckedChange={(v) => setValue('acceptTerms', v === true, { shouldValidate: true })}
+                  className='mt-1'
+                />
+                <span className='text-xs text-slate-600 leading-relaxed'>
+                  I agree to the{' '}
+                  <Link href='/legal/terms' target='_blank' className='text-[#f59e0b] hover:underline'>Terms & Conditions</Link>,{' '}
+                  <Link href='/legal/privacy' target='_blank' className='text-[#f59e0b] hover:underline'>Privacy Policy</Link>, and{' '}
+                  <Link href='/legal/refund' target='_blank' className='text-[#f59e0b] hover:underline'>Refund Policy</Link>.
+                </span>
+              </label>
+              {errors.acceptTerms && <p className='text-xs text-red-500 mt-1'>{errors.acceptTerms.message}</p>}
+            </div>
+
             <Button
               type='submit'
               className='w-full bg-[#f59e0b] hover:bg-[#d97706] text-slate-900 font-semibold h-12'

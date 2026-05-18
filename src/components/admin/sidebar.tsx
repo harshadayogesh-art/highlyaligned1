@@ -29,29 +29,30 @@ import {
 } from 'lucide-react'
 
 const navItems = [
-  { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/orders', label: 'Orders', icon: ShoppingCart },
-  { href: '/admin/bookings', label: 'Bookings', icon: CalendarDays },
-  { href: '/admin/products', label: 'Products', icon: Package },
-  { href: '/admin/services', label: 'Services', icon: BookOpen },
-  { href: '/admin/categories', label: 'Categories', icon: FolderOpen },
-  { href: '/admin/customers', label: 'Customers', icon: Users },
-  { href: '/admin/leads', label: 'Leads', icon: Contact },
-  { href: '/admin/referrals', label: 'Referrals', icon: Share2 },
-  { href: '/admin/cms', label: 'CMS', icon: FileText },
-  { href: '/admin/blog', label: 'Blog', icon: BookOpen },
-  { href: '/admin/coupons', label: 'Coupons', icon: Ticket },
-  { href: '/admin/payments', label: 'Payments', icon: CreditCard },
-  { href: '/admin/reports', label: 'Reports', icon: BarChart3 },
-  { href: '/admin/settings', label: 'Settings', icon: Settings },
+  { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'editor', 'support'] },
+  { href: '/admin/orders', label: 'Orders', icon: ShoppingCart, roles: ['admin', 'editor', 'support'] },
+  { href: '/admin/bookings', label: 'Bookings', icon: CalendarDays, roles: ['admin', 'editor', 'support'] },
+  { href: '/admin/products', label: 'Products', icon: Package, roles: ['admin', 'editor'] },
+  { href: '/admin/services', label: 'Services', icon: BookOpen, roles: ['admin', 'editor'] },
+  { href: '/admin/categories', label: 'Categories', icon: FolderOpen, roles: ['admin', 'editor'] },
+  { href: '/admin/customers', label: 'Customers', icon: Users, roles: ['admin', 'editor', 'support'] },
+  { href: '/admin/leads', label: 'Leads', icon: Contact, roles: ['admin', 'editor', 'support'] },
+  { href: '/admin/referrals', label: 'Referrals', icon: Share2, roles: ['admin', 'editor'] },
+  { href: '/admin/cms', label: 'CMS', icon: FileText, roles: ['admin', 'editor'] },
+  { href: '/admin/blog', label: 'Blog', icon: BookOpen, roles: ['admin', 'editor'] },
+  { href: '/admin/coupons', label: 'Coupons', icon: Ticket, roles: ['admin', 'editor'] },
+  { href: '/admin/payments', label: 'Payments', icon: CreditCard, roles: ['admin'] },
+  { href: '/admin/reports', label: 'Reports', icon: BarChart3, roles: ['admin'] },
+  { href: '/admin/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
 ]
 
-function NavList({ collapsed }: { collapsed: boolean }) {
+function NavList({ collapsed, userRole }: { collapsed: boolean; userRole: string }) {
   const pathname = usePathname()
+  const visibleItems = navItems.filter((item) => item.roles.includes(userRole))
 
   return (
     <nav className="flex-1 space-y-1 px-2 py-4 overflow-y-auto">
-      {navItems.map((item) => {
+      {visibleItems.map((item) => {
         const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
         const Icon = item.icon
         return (
@@ -77,7 +78,11 @@ function NavList({ collapsed }: { collapsed: boolean }) {
   )
 }
 
-export function AdminSidebar() {
+interface AdminSidebarProps {
+  userRole: string
+}
+
+export function AdminSidebar({ userRole }: AdminSidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const { darkMode, toggleDarkMode } = useDarkMode()
@@ -97,10 +102,10 @@ export function AdminSidebar() {
             <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
             <div className="h-16 flex items-center px-4 border-b border-border">
               <span className="text-xl font-bold text-foreground">
-                <span className="text-[#f59e0b]">H</span>A
+                <span className="text-[#f59e0b]">S</span>A
               </span>
             </div>
-            <NavList collapsed={false} />
+            <NavList collapsed={false} userRole={userRole} />
             <div className="border-t border-border p-3 space-y-2">
               <button
                 onClick={toggleDarkMode}
@@ -130,12 +135,12 @@ export function AdminSidebar() {
         <div className="h-16 flex items-center justify-between px-4 border-b border-border">
           {!collapsed && (
             <span className="text-xl font-bold text-foreground">
-              <span className="text-[#f59e0b]">Highly</span>Aligned
+              <span className="text-[#f59e0b]">Self</span>aligned
             </span>
           )}
           {collapsed && (
             <span className="text-xl font-bold text-foreground mx-auto">
-              <span className="text-[#f59e0b]">H</span>
+              <span className="text-[#f59e0b]">S</span>
             </span>
           )}
           <button
@@ -146,7 +151,7 @@ export function AdminSidebar() {
           </button>
         </div>
 
-        <NavList collapsed={collapsed} />
+        <NavList collapsed={collapsed} userRole={userRole} />
 
         <div className="border-t border-border p-3 space-y-2">
           <button

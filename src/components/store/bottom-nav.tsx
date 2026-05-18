@@ -16,7 +16,7 @@ export function BottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 pb-[env(safe-area-inset-bottom)] md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 bg-black border-t border-white/10 z-50 pb-[env(safe-area-inset-bottom)] md:hidden">
       <div className="max-w-md mx-auto flex justify-around items-center h-16">
         {tabs.map((tab) => {
           const isActive =
@@ -27,7 +27,7 @@ export function BottomNav() {
               key={tab.href}
               href={tab.href}
               className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 h-full ${
-                isActive ? 'text-[#f59e0b]' : 'text-slate-500'
+                isActive ? 'text-[#f59e0b]' : 'text-white/60'
               }`}
             >
               {/* Active indicator dot */}

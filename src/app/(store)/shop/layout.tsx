@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Shop Sacred Products | HighlyAligned',
+  title: 'Shop Sacred Products | Selfaligned',
   description: 'Browse our curated collection of energized crystals, yantras, and spiritual wellness products.',
 }
 

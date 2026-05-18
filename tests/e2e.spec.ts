@@ -1,7 +1,7 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
 import fs from 'fs';
 
-test.describe.serial('HighlyAligned E2E Business Flow', () => {
+test.describe.serial('Selfaligned E2E Business Flow', () => {
   let adminContext: BrowserContext;
   let adminPage: Page;
   

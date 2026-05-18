@@ -29,7 +29,7 @@ export async function GET(req: Request) {
       })
       await sendSMS(
         o.profiles.phone,
-        `Hi ${o.profiles.name}, please pay Rs.${o.final_total} for order ${o.order_number}. Our delivery partner will collect it. - HighlyAligned`
+        `Hi ${o.profiles.name}, please pay Rs.${o.final_total} for order ${o.order_number}. Our delivery partner will collect it. - Selfaligned`
       )
     }
   }

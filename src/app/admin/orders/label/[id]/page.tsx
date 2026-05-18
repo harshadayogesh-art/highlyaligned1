@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { supabaseService } from '@/lib/supabase/service'
+import { getServiceClient } from '@/lib/supabase/service'
 import { PrintButton } from '@/components/shared/print-button'
 
 interface LabelPageProps {
@@ -8,8 +8,9 @@ interface LabelPageProps {
 
 export default async function LabelPage({ params }: LabelPageProps) {
   const { id } = await params
+  const service = getServiceClient('admin-label-page')
 
-  const { data: order } = await supabaseService
+  const { data: order } = await service
     .from('orders')
     .select('*, profiles(name, email, phone), order_items(*, products(name))')
     .eq('id', id)
@@ -19,19 +20,22 @@ export default async function LabelPage({ params }: LabelPageProps) {
     notFound()
   }
 
-  const { data: settingsRows } = await supabaseService
+  const { data: settingsRows } = await service
     .from('settings')
     .select('key, value')
     .in('key', ['business_info'])
 
   const settings = Object.fromEntries(
     (settingsRows || []).map((r) => [r.key, r.value])
-  ) as Record<string, any>
+  ) as Record<string, unknown>
 
-  const business = settings.business_info || {}
+  const business = (settings.business_info || {}) as Record<string, string>
   const address = order.shipping_address as Record<string, string> | undefined
 
-  const itemNames = order.order_items?.map((item: any) => item.products?.name || 'Item').join(', ')
+  const itemNames = order.order_items?.map((item: unknown) => {
+    const i = item as { products?: { name?: string } }
+    return i.products?.name || 'Item'
+  }).join(', ')
 
   return (
     <div className='min-h-screen bg-slate-100 p-4 print:p-0 flex items-center justify-center'>
@@ -44,21 +48,18 @@ export default async function LabelPage({ params }: LabelPageProps) {
         }
       `}</style>
 
-      {/* Print Button */}
       <div className='no-print fixed top-4 right-4 z-50'>
         <PrintButton label='Print Label' />
       </div>
 
       <div className='label-container bg-white border-2 border-slate-900 w-full max-w-[400px] p-5 space-y-4'>
-        {/* From */}
         <div className='border-b-2 border-dashed border-slate-300 pb-3'>
           <p className='text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1'>From</p>
-          <p className='font-bold text-sm text-slate-900 leading-tight'>{business.name || 'HighlyAligned'}</p>
+          <p className='font-bold text-sm text-slate-900 leading-tight'>{business.name || 'Selfaligned'}</p>
           <p className='text-xs text-slate-700 leading-tight'>{business.address}</p>
           <p className='text-xs text-slate-700 leading-tight'>{business.phone}</p>
         </div>
 
-        {/* To */}
         <div className='border-b-2 border-dashed border-slate-300 pb-3'>
           <p className='text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1'>Ship To</p>
           <p className='font-bold text-base text-slate-900 leading-tight'>{address?.name}</p>
@@ -71,7 +72,6 @@ export default async function LabelPage({ params }: LabelPageProps) {
           <p className='text-xs text-slate-600 mt-1'>📞 {address?.phone}</p>
         </div>
 
-        {/* Order Info */}
         <div className='space-y-1'>
           <div className='flex justify-between items-center'>
             <span className='text-[10px] font-bold text-slate-500 uppercase'>Order #</span>
@@ -101,7 +101,6 @@ export default async function LabelPage({ params }: LabelPageProps) {
           )}
         </div>
 
-        {/* Items */}
         <div className='border-t-2 border-dashed border-slate-300 pt-2'>
           <p className='text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1'>Contents</p>
           <p className='text-xs text-slate-800 line-clamp-3'>{itemNames}</p>
@@ -110,7 +109,6 @@ export default async function LabelPage({ params }: LabelPageProps) {
           </p>
         </div>
 
-        {/* COD */}
         {order.payment_mode === 'cod' && (
           <div className='bg-amber-100 border-2 border-amber-300 rounded px-3 py-2 text-center'>
             <p className='text-lg font-bold text-amber-900'>COD</p>
@@ -119,12 +117,10 @@ export default async function LabelPage({ params }: LabelPageProps) {
           </div>
         )}
 
-        {/* Fragile */}
         <div className='border-2 border-red-400 rounded px-3 py-1.5 text-center'>
           <p className='text-xs font-bold text-red-600 uppercase'>Handle with Care — Fragile</p>
         </div>
 
-        {/* QR Placeholder */}
         <div className='flex items-center justify-center gap-3 pt-1'>
           <div className='w-16 h-16 border border-slate-300 bg-slate-50 flex items-center justify-center'>
             <span className='text-[8px] text-slate-400 text-center leading-tight'>QR<br/>CODE</span>

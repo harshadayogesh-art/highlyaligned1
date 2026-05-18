@@ -67,7 +67,7 @@ INSERT INTO page_blocks (page_key, block_key, content, images, sort_order) VALUE
 ('home', 'products_subtitle', '{"text": "Handpicked crystals, malas, and spiritual tools energized for your practice."}', '{}', 21),
 ('home', 'products_cta', '{"text": "View All", "link": "/shop"}', '{}', 22),
 
-('home', 'trust_title', '{"text": "Why Thousands Trust HighlyAligned"}', '{}', 30),
+('home', 'trust_title', '{"text": "Why Thousands Trust Selfaligned"}', '{}', 30),
 ('home', 'trust_subtitle', '{"text": "A blend of ancient Vedic wisdom and modern spiritual guidance, delivered with authenticity and care."}', '{}', 31),
 ('home', 'trust_badge_1', '{"title": "Authentic Practices", "description": "Rooted in traditional Vedic astrology and energy healing techniques passed down through generations."}', '{}', 32),
 ('home', 'trust_badge_2', '{"title": "Personalized Guidance", "description": "Every reading and session is tailored to your unique birth chart, energy, and life circumstances."}', '{}', 33),

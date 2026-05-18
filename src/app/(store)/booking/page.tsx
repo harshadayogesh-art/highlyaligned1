@@ -131,7 +131,7 @@ function BookingPageContent() {
       openRazorpayCheckout({
         orderId: rzpOrder.orderId,
         amountInPaise: rzpOrder.amount,
-        name: 'HighlyAligned',
+        name: 'Selfaligned',
         description: `Booking ${booking.booking_number}`,
         prefill: {
           name: intake.name,

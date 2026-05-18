@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
+import { getServiceClient } from '@/lib/supabase/service'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getAdmin() {
+  return getServiceClient('orders-cancel-route')
+}
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -22,7 +21,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     }
 
     // Fetch the order
-    const { data: order, error: fetchError } = await supabaseAdmin
+    const { data: order, error: fetchError } = await getAdmin()
       .from('orders')
       .select('customer_id, status')
       .eq('id', id)
@@ -46,7 +45,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       )
     }
 
-    const { data: updated, error } = await supabaseAdmin
+    const { data: updated, error } = await getAdmin()
       .from('orders')
       .update({ status: 'cancelled', updated_at: new Date().toISOString() })
       .eq('id', id)
