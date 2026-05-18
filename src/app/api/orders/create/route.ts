@@ -89,13 +89,17 @@ export async function POST(req: Request) {
     const customerId = user?.id ?? null
 
     if (idempotencyKey) {
-      const { data: existing } = await supabase
-        .from('orders')
-        .select('id')
-        .eq('idempotency_key', idempotencyKey)
-        .maybeSingle()
-      if (existing) {
-        return NextResponse.json({ orderId: existing.id, idempotencyKey })
+      try {
+        const { data: existing } = await supabase
+          .from('orders')
+          .select('id')
+          .eq('idempotency_key', idempotencyKey)
+          .maybeSingle()
+        if (existing) {
+          return NextResponse.json({ orderId: existing.id, idempotencyKey })
+        }
+      } catch {
+        // Column may not exist yet — continue with order creation
       }
     }
 
@@ -253,11 +257,23 @@ export async function POST(req: Request) {
       insertPayload.idempotency_key = idempotencyKey
     }
 
-    const { data: order, error: orderError } = await supabase
+    let orderResult = await supabase
       .from('orders')
       .insert(insertPayload)
       .select()
       .single()
+
+    // If idempotency_key column doesn't exist yet, retry without it
+    if (orderResult.error && idempotencyKey && orderResult.error.message?.includes('idempotency_key')) {
+      const { idempotency_key, ...payloadWithoutIdempotency } = insertPayload
+      orderResult = await supabase
+        .from('orders')
+        .insert(payloadWithoutIdempotency)
+        .select()
+        .single()
+    }
+
+    const { data: order, error: orderError } = orderResult
 
     if (orderError || !order) {
       console.error('Order creation error:', orderError)
