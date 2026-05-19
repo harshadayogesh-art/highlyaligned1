@@ -156,6 +156,9 @@ function BookingPageContent() {
           }
           setBookingComplete(true)
         },
+        onError: (response) => {
+          toast.error(response.error.description || 'Payment failed. Please try again.')
+        },
       })
     } else {
       setBookingComplete(true)

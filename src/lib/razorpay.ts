@@ -23,6 +23,27 @@ interface RazorpayOptions {
   theme?: {
     color: string
   }
+  config?: {
+    display?: {
+      blocks?: Record<string, {
+        name: string
+        instruments: Array<{
+          method: string
+          flows?: string[]
+        }>
+      }>
+      sequence?: string[]
+      preferences?: {
+        show_default_blocks?: boolean
+      }
+    }
+  }
+  remember_customer?: boolean
+  readonly?: boolean
+  hidden?: {
+    contact?: boolean
+    email?: boolean
+  }
 }
 
 interface RazorpayResponse {
@@ -31,9 +52,24 @@ interface RazorpayResponse {
   razorpay_signature: string
 }
 
+interface RazorpayPaymentFailedResponse {
+  error: {
+    code: string
+    description: string
+    source: string
+    step: string
+    reason: string
+    metadata: {
+      order_id: string
+      payment_id: string
+    }
+  }
+}
+
 interface RazorpayInstance {
   open: () => void
   close: () => void
+  on: (event: 'payment.failed', handler: (response: RazorpayPaymentFailedResponse) => void) => void
 }
 
 export function loadRazorpayScript(): Promise<boolean> {
@@ -71,6 +107,7 @@ export function openRazorpayCheckout({
   prefill,
   onSuccess,
   onDismiss,
+  onError,
 }: {
   orderId: string
   amountInPaise: number
@@ -79,6 +116,7 @@ export function openRazorpayCheckout({
   prefill?: { name?: string; email?: string; contact?: string }
   onSuccess: (response: RazorpayResponse) => void
   onDismiss?: () => void
+  onError?: (response: RazorpayPaymentFailedResponse) => void
 }) {
   const options: RazorpayOptions = {
     key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
@@ -96,8 +134,13 @@ export function openRazorpayCheckout({
   }
 
   const rzp = new window.Razorpay(options)
+
+  if (onError) {
+    rzp.on('payment.failed', onError)
+  }
+
   rzp.open()
   return rzp
 }
 
-export type { RazorpayResponse }
+export type { RazorpayResponse, RazorpayPaymentFailedResponse }
