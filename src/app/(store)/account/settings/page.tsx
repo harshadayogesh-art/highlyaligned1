@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/use-auth'
-import { useChangePassword } from '@/hooks/use-profile'
+import { useChangePassword, useDeleteAccount } from '@/hooks/use-profile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -31,6 +31,7 @@ export default function AccountSettingsPage() {
   const router = useRouter()
   const { user, isLoading, signOut } = useAuth()
   const changePassword = useChangePassword()
+  const deleteAccount = useDeleteAccount()
 
   const [showPasswordDialog, setShowPasswordDialog] = useState(false)
   const [currentPassword, setCurrentPassword] = useState('')
@@ -56,9 +57,7 @@ export default function AccountSettingsPage() {
   }
 
   const handleDeleteAccount = async () => {
-    // For now, just sign out and redirect. Full deletion requires backend RPC.
-    await signOut()
-    router.push('/')
+    await deleteAccount.mutateAsync()
   }
 
   if (isLoading || !user) {
@@ -225,9 +224,10 @@ export default function AccountSettingsPage() {
                 variant="destructive"
                 className="flex-1"
                 onClick={handleDeleteAccount}
-                disabled={deleteConfirm !== 'DELETE'}
+                disabled={deleteConfirm !== 'DELETE' || deleteAccount.isPending}
               >
-                <Trash2 className="h-4 w-4 mr-1" /> Delete
+                {deleteAccount.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trash2 className="h-4 w-4 mr-1" />}
+                Delete
               </Button>
             </div>
           </div>

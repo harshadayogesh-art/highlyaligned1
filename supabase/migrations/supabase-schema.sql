@@ -518,3 +518,49 @@ create trigger on_auth_user_created
     join profiles p on p.email = i.email
     where i.id = influencer_commissions.influencer_id and p.id = auth.uid()
   ));
+
+-- ═══════════════════════════════════════════════════════════════
+-- ADDRESSES (customer saved shipping addresses)
+-- ═══════════════════════════════════════════════════════════════
+
+create table if not exists addresses (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references profiles(id) on delete cascade not null,
+  name text not null,
+  phone text not null,
+  email text,
+  line1 text not null,
+  line2 text,
+  city text not null,
+  state text not null,
+  pincode text not null,
+  landmark text,
+  is_default boolean default false,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table addresses enable row level security;
+
+create policy "Users can view own addresses"
+  on addresses for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert own addresses"
+  on addresses for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update own addresses"
+  on addresses for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create policy "Users can delete own addresses"
+  on addresses for delete
+  using (auth.uid() = user_id);
+
+create policy "Admins can view all addresses"
+  on addresses for select
+  using (exists (
+    select 1 from profiles where id = auth.uid() and role in ('admin', 'editor', 'support')
+  ));

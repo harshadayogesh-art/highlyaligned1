@@ -32,7 +32,12 @@ export function useAddresses(userId?: string) {
         .eq('user_id', userId!)
         .order('is_default', { ascending: false })
         .order('created_at', { ascending: false })
-      if (error) throw error
+      if (error) {
+        if (error.message?.includes("Could not find the table")) {
+          return [] as Address[]
+        }
+        throw error
+      }
       return data as Address[]
     },
     enabled: !!userId,
@@ -57,7 +62,13 @@ export function useCreateAddress() {
       queryClient.invalidateQueries({ queryKey: ['addresses'] })
       toast.success('Address saved')
     },
-    onError: (err: Error) => toast.error(err.message || 'Failed to save address'),
+    onError: (err: Error) => {
+      if (err.message?.includes("Could not find the table")) {
+        toast.warning('Address saving is temporarily unavailable. Your order will still be placed.')
+        return
+      }
+      toast.error(err.message || 'Failed to save address')
+    },
   })
 }
 

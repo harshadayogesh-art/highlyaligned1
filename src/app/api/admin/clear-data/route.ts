@@ -7,7 +7,7 @@ import { rateLimit } from '@/lib/rate-limit'
 import { logAudit } from '@/lib/audit'
 
 const clearDataSchema = z.object({
-  tables: z.array(z.string().min(1)).min(1).max(5),
+  tables: z.array(z.string().min(1)).min(1),
 })
 
 const ALLOWED_TABLES = [
@@ -60,12 +60,35 @@ export async function POST(req: Request) {
     const service = getServiceClient('admin-clear-data')
     const results: Record<string, { success: boolean; count?: number; error?: string }> = {}
 
+    // Define deletion order: child tables must be deleted BEFORE parent tables
+    // to avoid foreign key constraint violations.
+    const deletionOrder = [
+      'order_items',   // child of orders
+      'remedies',      // child of bookings
+      'influencer_commissions', // child of influencers
+      'orders',
+      'bookings',
+      'influencers',
+      'referrals',
+      'leads',
+      'coupons',
+      'blog_posts',
+      'page_blocks',
+    ]
+
+    // Sort requested tables by dependency order
+    const sortedTables = tables
+      .filter((t) => ALLOWED_TABLES.includes(t))
+      .sort((a, b) => deletionOrder.indexOf(a) - deletionOrder.indexOf(b))
+
+    // Reject invalid tables first
     for (const table of tables) {
       if (!ALLOWED_TABLES.includes(table)) {
         results[table] = { success: false, error: 'Invalid table name' }
-        continue
       }
+    }
 
+    for (const table of sortedTables) {
       try {
         const { error, count } = await service
           .from(table)

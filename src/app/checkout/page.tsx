@@ -185,21 +185,25 @@ export default function CheckoutPage() {
   const onSubmit = async (values: CheckoutFormValues) => {
     setPlacing(true)
     try {
-      // Save address if requested
+      // Save address if requested (non-blocking)
       if (user && values.address.saveAddress) {
-        await createAddress.mutateAsync({
-          user_id: user.id,
-          name: values.address.name,
-          phone: values.address.phone,
-          email: values.address.email,
-          line1: values.address.line1,
-          line2: values.address.line2 || '',
-          city: values.address.city,
-          state: values.address.state,
-          pincode: values.address.pincode,
-          landmark: values.address.landmark || '',
-          is_default: savedAddresses?.length === 0,
-        })
+        try {
+          await createAddress.mutateAsync({
+            user_id: user.id,
+            name: values.address.name,
+            phone: values.address.phone,
+            email: values.address.email,
+            line1: values.address.line1,
+            line2: values.address.line2 || '',
+            city: values.address.city,
+            state: values.address.state,
+            pincode: values.address.pincode,
+            landmark: values.address.landmark || '',
+            is_default: savedAddresses?.length === 0,
+          })
+        } catch {
+          // Address save failed (e.g. table missing) — don't block order placement
+        }
       }
 
       const res = await fetch('/api/orders/create', {
