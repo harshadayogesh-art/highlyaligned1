@@ -59,7 +59,7 @@ INSERT INTO legal_pages (slug, title, content, meta_description, is_published) V
 ## 1. Definitions
 - **"Platform"** refers to Selfaligned.in and all associated services.
 - **"User"** means any person accessing or using the Platform.
-- **"Services"** refers to astrology consultations, energy healing sessions, and spiritual guidance.
+- **"Services"** refers to astrology consultations and spiritual guidance.
 - **"Products"** refers to crystals, malas, energized items, and other physical goods sold on the Platform.
 
 ## 2. Eligibility

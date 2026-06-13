@@ -42,7 +42,7 @@ import {
   Search,
 } from 'lucide-react'
 
-const CATEGORIES = ['Astrology', 'Crystals', 'Rituals', 'Tarot', 'Chakra', 'Vastu', 'Events']
+const CATEGORIES = ['Astrology', 'Crystals', 'Rituals', 'Tarot', 'Vastu', 'Events']
 
 export default function BlogManagerPage() {
   const { data: posts } = useBlogPosts()
@@ -357,7 +357,7 @@ export default function BlogManagerPage() {
               <Input
                 value={aiKeywords}
                 onChange={(e) => setAiKeywords(e.target.value)}
-                placeholder='e.g. crystal cleansing, energy healing, spiritual rituals'
+                placeholder='e.g. crystal cleansing, spiritual rituals'
               />
             </div>
             <div className='grid grid-cols-2 gap-3'>

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useService } from '@/hooks/use-services'
 import { useCreateBooking } from '@/hooks/use-bookings'
 import { useAuth } from '@/hooks/use-auth'
@@ -230,6 +231,9 @@ export default function ServiceBookingPage() {
               </Button>
               <p className="text-xs text-slate-400 text-center mt-3">
                 Payment will be collected before or during your session.
+              </p>
+              <p className="text-xs text-slate-400 text-center mt-2">
+                By proceeding, you agree to our <Link href="/legal/refund" className="underline hover:text-slate-900">Cancellation & Refund Policy</Link>
               </p>
             </div>
           </div>

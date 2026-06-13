@@ -55,7 +55,7 @@ CREATE POLICY "Page blocks admin delete"
 INSERT INTO page_blocks (page_key, block_key, content, images, sort_order) VALUES
 ('home', 'hero_tagline', '{"text": "Welcome to your spiritual journey"}', '{}', 1),
 ('home', 'hero_title', '{"text": "Align Your Energy,\\nTransform Your Life"}', '{}', 2),
-('home', 'hero_description', '{"text": "Discover ancient wisdom through personalized astrology, energy healing, and sacred products curated to elevate your spiritual practice."}', '{}', 3),
+('home', 'hero_description', '{"text": "Discover ancient wisdom through personalized astrology and sacred products curated to elevate your spiritual practice."}', '{}', 3),
 ('home', 'hero_cta_primary', '{"text": "Free Kundali", "link": "/kundali"}', '{}', 4),
 ('home', 'hero_cta_secondary', '{"text": "Book Session", "link": "/services"}', '{}', 5),
 
@@ -69,13 +69,13 @@ INSERT INTO page_blocks (page_key, block_key, content, images, sort_order) VALUE
 
 ('home', 'trust_title', '{"text": "Why Thousands Trust Selfaligned"}', '{}', 30),
 ('home', 'trust_subtitle', '{"text": "A blend of ancient Vedic wisdom and modern spiritual guidance, delivered with authenticity and care."}', '{}', 31),
-('home', 'trust_badge_1', '{"title": "Authentic Practices", "description": "Rooted in traditional Vedic astrology and energy healing techniques passed down through generations."}', '{}', 32),
+('home', 'trust_badge_1', '{"title": "Authentic Practices", "description": "Rooted in traditional Vedic astrology techniques passed down through generations."}', '{}', 32),
 ('home', 'trust_badge_2', '{"title": "Personalized Guidance", "description": "Every reading and session is tailored to your unique birth chart, energy, and life circumstances."}', '{}', 33),
 ('home', 'trust_badge_3', '{"title": "Trusted & Confidential", "description": "Your personal details and consultations are kept strictly private. Over 5,000+ satisfied clients."}', '{}', 34),
 
 ('home', 'testimonials_title', '{"text": "💫 Client Stories"}', '{}', 40),
 ('home', 'testimonials_subtitle', '{"text": "Real experiences from our spiritual community."}', '{}', 41),
-('home', 'testimonial_1', '{"text": "Harshada''s chakra healing completely shifted my energy. I felt lighter and more focused within days.", "author": "Meera Joshi", "service": "Chakra Healing", "img": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face"}', '{}', 42),
+
 ('home', 'testimonial_2', '{"text": "The oracle card reading gave me clarity about my career. Her intuition is remarkable and accurate.", "author": "Rohit Verma", "service": "Oracle Reading", "img": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face"}', '{}', 43),
 ('home', 'testimonial_3', '{"text": "The manifestation coaching helped me align my desires. I manifested a new job within 2 months!", "author": "Priya Sharma", "service": "Manifestation Coaching", "img": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop&crop=face"}', '{}', 44),
 
@@ -92,14 +92,14 @@ INSERT INTO page_blocks (page_key, block_key, content, images, sort_order) VALUE
 ('about', 'hero_highlight', '{"text": "Harshada"}', '{}', 2),
 ('about', 'bio_image', '{"text": ""}', '{}', 5),
 ('about', 'bio_name', '{"text": "Harshada Yogesh"}', '{}', 10),
-('about', 'bio_role', '{"text": "NLP Coach | Oracle Card Reader | Chakra Healer"}', '{}', 11),
-('about', 'bio_paragraph_1', '{"text": "With over a decade of experience in Vedic astrology, energy healing, and spiritual counseling, Harshada has guided more than 5,000 seekers toward clarity, peace, and purpose."}', '{}', 12),
+('about', 'bio_role', '{"text": "NLP Coach | Oracle Card Reader"}', '{}', 11),
+('about', 'bio_paragraph_1', '{"text": "With over a decade of experience in Vedic astrology and spiritual counseling, Harshada has guided more than 5,000 seekers toward clarity, peace, and purpose."}', '{}', 12),
 ('about', 'bio_paragraph_2', '{"text": "Her unique approach blends ancient Vedic wisdom with modern NLP techniques, making spiritual guidance accessible, practical, and deeply transformative for today''s seekers."}', '{}', 13),
 ('about', 'bio_paragraph_3', '{"text": "Whether you are navigating career crossroads, relationship challenges, health concerns, or simply seeking deeper self-understanding, Harshada''s compassionate readings provide actionable insights rooted in your unique birth chart."}', '{}', 14),
 ('about', 'cert_1', '{"text": "Certified NLP Practitioner"}', '{}', 20),
 ('about', 'cert_2', '{"text": "10+ Years Astrology Experience"}', '{}', 21),
 ('about', 'cert_3', '{"text": "5000+ Consultations Delivered"}', '{}', 22),
-('about', 'cert_4', '{"text": "Energy Healing Expert"}', '{}', 23),
+
 ('about', 'mission_quote', '{"text": "My mission is to make ancient spiritual wisdom accessible to every modern seeker. You don''t need to be a scholar to benefit from Vedic astrology — you just need an open heart and the right guide."}', '{}', 30),
 ('about', 'mission_author', '{"text": "— Harshada Yogesh"}', '{}', 31),
 ('about', 'services_title', '{"text": "Our Services"}', '{}', 40),

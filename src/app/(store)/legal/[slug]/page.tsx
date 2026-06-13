@@ -18,7 +18,7 @@ const FALLBACK_PAGES: Record<string, { title: string; meta_description: string; 
 ## 1. Definitions
 - **"Platform"** refers to Selfaligned.in and all associated services.
 - **"User"** means any person accessing or using the Platform.
-- **"Services"** refers to astrology consultations, energy healing sessions, and spiritual guidance.
+- **"Services"** refers to astrology consultations and spiritual guidance.
 - **"Products"** refers to crystals, malas, energized items, and other physical goods sold on the Platform.
 
 ## 2. Eligibility
@@ -65,6 +65,7 @@ In accordance with the Information Technology Act, 2000:
     meta_description: 'Privacy Policy for Selfaligned.in. Compliant with DPDP Act 2023.',
     last_updated: '2026-01-01',
     content: `**Effective Date:** January 1, 2026
+**Last Updated:** ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
 **Business Name:** Selfaligned
 
 ---
@@ -208,7 +209,6 @@ You may return physical products within **7 days** of delivery **only** if:
 **Non-returnable items:**
 - Gemstones and crystals that have been worn or used.
 - Energized or blessed items (once opened).
-- Perishable goods.
 - Items with broken safety seals.
 
 ## 3. Consultation Services (Cancellation Table)

@@ -277,10 +277,10 @@ export default function LandingPage({
               {(blocks['hero_tagline']?.content?.text as string) || "Welcome to Your Soul's Journey"}
             </p>
             <h1 className="text-3xl md:text-6xl font-serif font-bold leading-tight mb-4 md:mb-8 drop-shadow-lg whitespace-pre-line">
-              {(blocks['hero_title']?.content?.text as string) || 'Find Balance. Restore Energy.\nElevate Your Life.'}
+              {(blocks['hero_title']?.content?.text as string) || 'Find Clarity. Embrace Stillness.\nTransform Within.'}
             </h1>
             <p className="hidden md:block text-white/80 text-lg mb-8 max-w-lg leading-relaxed">
-              {(blocks['hero_description']?.content?.text as string) || 'Step into a space of deep healing and self-discovery. Explore our curated selection of sacred tools, personalized astrological insights, and restorative energy sessions tailored to support your unique spiritual path.'}
+              {(blocks['hero_description']?.content?.text as string) || 'Step into a space of mindful self-discovery and inner growth. Explore our curated collection of sacred tools, personalized Vedic astrology guidance, and one-on-one wellness consultations designed to support your journey toward balance and purpose.'}
             </p>
             <div className="flex flex-row gap-3">
               <Link href={(blocks['hero_cta_primary']?.content?.link as string) || '/services'}>
@@ -499,7 +499,7 @@ export default function LandingPage({
                 icon: Gem,
                 blockKey: 'trust_badge_1',
                 title: (blocks['trust_badge_1']?.content?.title as string) || 'Authentic Practices',
-                desc: (blocks['trust_badge_1']?.content?.description as string) || 'Rooted in traditional Vedic astrology and energy healing techniques passed down through generations.',
+                desc: (blocks['trust_badge_1']?.content?.description as string) || 'Rooted in traditional Vedic astrology techniques passed down through generations.',
               },
               {
                 icon: HeartHandshake,
@@ -585,7 +585,7 @@ export default function LandingPage({
             {(blocks['cta_title']?.content?.text as string) || 'Begin Your Transformation Today'}
           </h2>
           <p className="text-violet-200 text-lg mb-10 max-w-2xl mx-auto leading-relaxed">
-            {(blocks['cta_subtitle']?.content?.text as string) || 'Whether you seek clarity through astrology, healing through energy work, or tools to deepen your practice — we are here to guide you.'}
+            {(blocks['cta_subtitle']?.content?.text as string) || 'Whether you seek clarity through astrology, or tools to deepen your practice — we are here to guide you.'}
           </p>
           <div className="flex gap-4 justify-center">
             <Link href={(blocks['cta_button_1']?.content?.link as string) || '/services'}>
@@ -662,12 +662,6 @@ function getTestimonials(blocks: Record<string, BlockData>) {
   if (fromBlocks.length > 0) return fromBlocks
   return [
     {
-      text: "Harshada's chakra healing completely shifted my energy. I felt lighter and more focused within days.",
-      author: 'Meera Joshi',
-      service: 'Chakra Healing',
-      img: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
-    },
-    {
       text: 'The oracle card reading gave me clarity about my career. Her intuition is remarkable and accurate.',
       author: 'Rohit Verma',
       service: 'Oracle Reading',
@@ -718,14 +712,24 @@ function TestimonialCard({
         &ldquo;{t.text}&rdquo;
       </p>
       <div className="flex items-center gap-3">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={t.img}
-          alt={t.author}
-          className={`rounded-full object-cover ${
-            compact ? 'w-10 h-10' : 'w-12 h-12'
-          }`}
-        />
+        {t.img && !t.img.includes('unsplash.com') ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={t.img}
+            alt={t.author}
+            className={`rounded-full object-cover ${
+              compact ? 'w-10 h-10' : 'w-12 h-12'
+            }`}
+          />
+        ) : (
+          <div
+            className={`rounded-full bg-violet-100 text-violet-700 font-bold flex items-center justify-center ${
+              compact ? 'w-10 h-10 text-sm' : 'w-12 h-12 text-base'
+            }`}
+          >
+            {t.author.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+          </div>
+        )}
         <div>
           <div
             className={`font-bold text-slate-900 ${

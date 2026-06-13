@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, Search, Clock, ArrowRight, User } from 'lucide-react'
 
-const CATEGORIES = ['All', 'Astrology', 'Crystals', 'Rituals', 'Tarot', 'Chakra', 'Vastu', 'Events']
+const CATEGORIES = ['All', 'Astrology', 'Crystals', 'Rituals', 'Tarot', 'Vastu', 'Events']
 
 function estimateReadTime(content: string | null): number {
   if (!content) return 1

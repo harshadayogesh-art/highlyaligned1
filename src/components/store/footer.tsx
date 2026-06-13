@@ -43,7 +43,10 @@ function StoreFooterContent({ settings }: { settings?: Record<string, unknown> }
             {footer.address && (
               <p className="text-xs text-slate-500 flex items-start gap-1.5">
                 <MapPin className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-                {footer.address as string}
+                <span className="flex flex-col gap-1">
+                  <span>{footer.address as string}</span>
+                  <span className="font-medium mt-1 text-slate-400">GSTIN: GST not applicable – annual turnover below ₹20 lakh threshold</span>
+                </span>
               </p>
             )}
           </div>
@@ -81,6 +84,7 @@ function StoreFooterContent({ settings }: { settings?: Record<string, unknown> }
                 </a>
               )}
               {footer.email && (
+                // TODO: Replace with domain email support@selfaligned.in once set up
                 <a href={`mailto:${footer.email}`} className="flex items-center gap-2 text-sm hover:text-[#f59e0b]">
                   <Mail className="h-3.5 w-3.5" /> {footer.email as string}
                 </a>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { forceDeleteProducts } from './actions'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -235,21 +236,7 @@ export default function ProductsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (ids: string[]) => {
-      const supabase = createClient()
-      
-      const { data: orderItems, error: oiError } = await supabase
-        .from('order_items')
-        .select('product_id')
-        .in('product_id', ids)
-        .limit(1)
-
-      if (oiError) throw oiError
-      if (orderItems && orderItems.length > 0) {
-        throw new Error('Cannot delete — product has order history. Set to Hidden instead.')
-      }
-
-      const { error } = await supabase.from('products').delete().in('id', ids)
-      if (error) throw error
+      await forceDeleteProducts(ids)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-products'] })

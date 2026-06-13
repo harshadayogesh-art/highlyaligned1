@@ -145,18 +145,26 @@ export default function CategoriesPage() {
     mutationFn: async (id: string) => {
       const supabase = createClient()
 
-      // Check if any products / services use this category
-      const { data: linked, error: linkErr } = await supabase
+      // First, unassign this category from any products that use it
+      const { error: unlinkProdErr } = await supabase
         .from('products')
-        .select('id')
+        .update({ category_id: null })
         .eq('category_id', id)
-        .limit(1)
-      if (linkErr) throw linkErr
-      if (linked && linked.length > 0) {
-        throw new Error(
-          'Cannot delete — products are assigned to this category. Reassign them first.'
-        )
-      }
+      if (unlinkProdErr) throw unlinkProdErr
+
+      // Unassign this category from any services that use it
+      const { error: unlinkSvcErr } = await supabase
+        .from('services')
+        .update({ category_id: null })
+        .eq('category_id', id)
+      if (unlinkSvcErr) throw unlinkSvcErr
+
+      // Unassign this category as a parent from any subcategories
+      const { error: unlinkSubcatErr } = await supabase
+        .from('categories')
+        .update({ parent_id: null })
+        .eq('parent_id', id)
+      if (unlinkSubcatErr) throw unlinkSubcatErr
 
       const { error } = await supabase.from('categories').delete().eq('id', id)
       if (error) throw error

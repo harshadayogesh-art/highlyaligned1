@@ -693,6 +693,9 @@ export default function CheckoutPage() {
             >
               {placing ? 'Placing Order...' : 'Place Order'}
             </Button>
+            <p className="text-xs text-muted-foreground text-center mt-3">
+              By proceeding, you agree to our <Link href="/legal/refund" className="underline hover:text-slate-900">Cancellation & Refund Policy</Link>
+            </p>
           </div>
         </div>
       </form>
@@ -705,15 +708,20 @@ export default function CheckoutPage() {
           <p className='text-xs text-slate-500'>Total</p>
           <p className='text-lg font-bold text-slate-900'>Rs.{finalTotal.toFixed(2)}</p>
         </div>
-        <Button
-          type='submit'
-          form='checkout-form'
-          className='bg-[#f59e0b] hover:bg-[#d97706] text-slate-900 font-semibold px-8 h-12'
-          disabled={placing || (paymentMode === 'cod' && finalTotal >= 5000)}
-          onClick={handleSubmit(onSubmit)}
-        >
-          {placing ? 'Placing...' : 'Place Order'}
-        </Button>
+        <div className="flex flex-col items-end">
+          <Button
+            type='submit'
+            form='checkout-form'
+            className='bg-[#f59e0b] hover:bg-[#d97706] text-slate-900 font-semibold px-8 h-12 mb-1 w-full'
+            disabled={placing || (paymentMode === 'cod' && finalTotal >= 5000)}
+            onClick={handleSubmit(onSubmit)}
+          >
+            {placing ? 'Placing...' : 'Place Order'}
+          </Button>
+          <p className="text-[10px] text-muted-foreground text-right w-full">
+            By proceeding, you agree to our <Link href="/legal/refund" className="underline">Refund Policy</Link>
+          </p>
+        </div>
       </div>
     </div>
     </>

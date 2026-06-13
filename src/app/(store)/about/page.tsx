@@ -7,7 +7,7 @@ import { usePageBlockMap } from '@/components/store/page-block'
 
 export const metadata = {
   title: 'About Harshada — Selfaligned',
-  description: 'Meet Harshada Yogesh — NLP Coach, Oracle Card Reader, and Chakra Healer with 10+ years of experience.',
+  description: 'Meet Harshada Yogesh — NLP Coach and Oracle Card Reader with 10+ years of experience.',
 }
 
 async function getAboutBlocks() {
@@ -69,10 +69,10 @@ export default async function AboutPage() {
           <div className="space-y-4">
             <h2 className="text-2xl font-bold text-slate-900">{(blocks['bio_name']?.content?.text as string) || 'Harshada Yogesh'}</h2>
             <p className="text-[#f59e0b] font-medium">
-              {(blocks['bio_role']?.content?.text as string) || 'NLP Coach | Oracle Card Reader | Chakra Healer'}
+              {(blocks['bio_role']?.content?.text as string) || 'NLP Coach | Oracle Card Reader'}
             </p>
             <div className="text-slate-600 leading-relaxed space-y-3">
-              <p>{(blocks['bio_paragraph_1']?.content?.text as string) || 'With over a decade of experience in Vedic astrology, energy healing, and spiritual counseling, Harshada has guided more than 5,000 seekers toward clarity, peace, and purpose.'}</p>
+              <p>{(blocks['bio_paragraph_1']?.content?.text as string) || 'With over a decade of experience in Vedic astrology and spiritual counseling, Harshada has guided more than 5,000 seekers toward clarity, peace, and purpose.'}</p>
               <p>{(blocks['bio_paragraph_2']?.content?.text as string) || "Her unique approach blends ancient Vedic wisdom with modern NLP techniques, making spiritual guidance accessible, practical, and deeply transformative for today's seekers."}</p>
               <p>{(blocks['bio_paragraph_3']?.content?.text as string) || "Whether you are navigating career crossroads, relationship challenges, health concerns, or simply seeking deeper self-understanding, Harshada's compassionate readings provide actionable insights rooted in your unique birth chart."}</p>
             </div>
@@ -81,7 +81,6 @@ export default async function AboutPage() {
                 (blocks['cert_1']?.content?.text as string) || 'Certified NLP Practitioner',
                 (blocks['cert_2']?.content?.text as string) || '10+ Years Astrology Experience',
                 (blocks['cert_3']?.content?.text as string) || '5000+ Consultations Delivered',
-                (blocks['cert_4']?.content?.text as string) || 'Energy Healing Expert',
               ].map((item) => (
                 <div key={item} className="flex items-center gap-2 text-sm text-slate-700">
                   <CheckCircle className="h-4 w-4 text-emerald-500" />
