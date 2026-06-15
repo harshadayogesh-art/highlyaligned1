@@ -55,7 +55,7 @@ These Terms are governed by the laws of the **Republic of India**. Any dispute s
 
 ## 10. Grievance Officer
 In accordance with the Information Technology Act, 2000:
-- **Name:** Harshada (Proprietor)
+- **Name:** Harshada Yogesh Jagtap (Proprietor)
 - **Email:** self.aligned1111@gmail.com
 - **Address:** Pimpri-Chinchwad, Maharashtra, India
 - **Response Time:** 48-72 business hours`,
@@ -123,7 +123,7 @@ We use only **essential cookies** necessary for website functionality (login ses
 
 ## 10. Grievance Officer
 For any privacy-related concerns or complaints:
-- **Name:** Harshada (Proprietor)
+- **Name:** Harshada Yogesh Jagtap (Proprietor)
 - **Email:** self.aligned1111@gmail.com
 - **Address:** Pimpri-Chinchwad, Maharashtra, India
 - **Response Time:** 48-72 business hours`,
@@ -207,8 +207,6 @@ You may return physical products within **7 days** of delivery **only** if:
 - The wrong product was delivered.
 
 **Non-returnable items:**
-- Gemstones and crystals that have been worn or used.
-- Energized or blessed items (once opened).
 - Items with broken safety seals.
 
 ## 3. Consultation Services (Cancellation Table)

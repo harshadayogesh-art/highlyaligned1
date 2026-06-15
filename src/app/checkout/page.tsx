@@ -529,43 +529,6 @@ export default function CheckoutPage() {
                   <p className='text-xs text-red-500'>Not available for orders above Rs.5000</p>
                 )}
               </label>
-
-              <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer ${paymentMode === 'online' ? 'border-[#f59e0b] bg-amber-50' : 'border-slate-200'}`}>
-                <input type='radio' value='online' {...register('paymentMode')} className='hidden' />
-                <CreditCard className='h-5 w-5 text-[#f59e0b]' />
-                <div className='flex-1'>
-                  <p className='font-medium text-sm flex items-center gap-2'>
-                    Online Payment
-                    {isTestMode && (
-                      <span className='text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium uppercase tracking-wider'>
-                        Test Mode
-                      </span>
-                    )}
-                  </p>
-                  <p className='text-xs text-slate-500'>Pay securely via Razorpay (Cards, UPI, Net Banking)</p>
-                </div>
-              </label>
-
-              {paymentMode === 'online' && isTestMode && (
-                <div className='bg-blue-50 border border-blue-100 rounded-lg p-3 space-y-3'>
-                  <div className='flex items-center gap-2'>
-                    <Info className='h-4 w-4 text-blue-600 flex-shrink-0' />
-                    <p className='text-xs font-semibold text-blue-800'>Test Credentials (no real money charged)</p>
-                  </div>
-                  <div className='text-xs text-blue-700 space-y-1 pl-6'>
-                    <p className='font-semibold text-blue-800'>Card (Domestic Mastercard)</p>
-                    <p>• Card No: <span className='font-mono font-medium'>5267 3181 8797 5449</span></p>
-                    <p>• Expiry: <span className='font-mono font-medium'>12/30</span> (any future date)</p>
-                    <p>• CVV: <span className='font-mono font-medium'>123</span> (any 3 digits)</p>
-                    <p className='text-blue-600 italic mt-1'>On the next screen, enter any <strong>4-10 digit OTP</strong> and click Submit to succeed.</p>
-                  </div>
-                  <div className='text-xs text-blue-700 space-y-1 pl-6'>
-                    <p className='font-semibold text-blue-800'>UPI (Recommended — easiest)</p>
-                    <p>• Success: <span className='font-mono font-medium'>success@razorpay</span></p>
-                    <p>• Failure: <span className='font-mono font-medium'>failure@razorpay</span></p>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>

@@ -150,16 +150,12 @@ export default function ProductDetailPage() {
             <TabsList>
               <TabsTrigger value="description">Description</TabsTrigger>
               <TabsTrigger value="how_to_use">How to Use</TabsTrigger>
-              <TabsTrigger value="energization">Energization</TabsTrigger>
             </TabsList>
             <TabsContent value="description" className="text-sm text-slate-600 mt-4">
               {product.description || 'No description available.'}
             </TabsContent>
             <TabsContent value="how_to_use" className="text-sm text-slate-600 mt-4">
               {product.how_to_use || 'No usage instructions available.'}
-            </TabsContent>
-            <TabsContent value="energization" className="text-sm text-slate-600 mt-4">
-              {product.energization_process || 'No energization process available.'}
             </TabsContent>
           </Tabs>
         </div>
