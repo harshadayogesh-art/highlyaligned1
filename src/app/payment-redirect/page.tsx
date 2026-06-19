@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, CheckCircle2, XCircle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,7 @@ import { triggerOrderNotification } from '@/app/actions/notifications'
 
 type PaymentState = 'checking' | 'success' | 'failed' | 'pending'
 
-export default function PaymentRedirectPage() {
+function PaymentRedirectContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const orderId = searchParams.get('orderId')
@@ -172,5 +172,26 @@ export default function PaymentRedirectPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function PaymentRedirectPage() {
+  return (
+    <Suspense fallback={
+      <div className='min-h-[80vh] flex flex-col items-center justify-center px-4'>
+        <div className='bg-white rounded-2xl shadow-sm border border-slate-100 p-8 md:p-12 max-w-md w-full text-center space-y-6'>
+          <div className='flex justify-center'>
+            <div className='h-20 w-20 rounded-full bg-purple-50 flex items-center justify-center'>
+              <Loader2 className='h-10 w-10 text-[#5e35b1] animate-spin' />
+            </div>
+          </div>
+          <div>
+            <h1 className='text-xl font-bold text-slate-900 mb-2'>Loading...</h1>
+          </div>
+        </div>
+      </div>
+    }>
+      <PaymentRedirectContent />
+    </Suspense>
   )
 }
