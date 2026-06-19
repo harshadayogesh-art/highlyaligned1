@@ -89,6 +89,8 @@ function OrderSuccessPageContent() {
           <p className='text-slate-500'>
             {isPaid
               ? 'Your payment was successful.'
+              : order.payment_mode === 'online'
+              ? 'Your online payment is being processed.'
               : 'You will pay on delivery.'}
           </p>
         </div>
@@ -109,7 +111,7 @@ function OrderSuccessPageContent() {
           <div className='flex items-center justify-between'>
             <span className='text-sm text-slate-500'>Payment</span>
             <Badge className={isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}>
-              {isPaid ? 'Paid' : 'COD'}
+              {isPaid ? 'Paid' : order.payment_mode === 'online' ? 'Online (Pending)' : 'COD'}
             </Badge>
           </div>
         </div>

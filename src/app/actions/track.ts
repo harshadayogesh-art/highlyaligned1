@@ -6,11 +6,13 @@ export async function trackOrder(orderNumber: string, emailOrPhone: string) {
   try {
     const supabase = await createClient()
 
+    const cleanOrderNumber = orderNumber.trim().replace(/^#/, '')
+
     // Find the order by order number
     const { data: order, error } = await supabase
       .from('orders')
       .select('*, profiles(email, phone), order_items(*, products(name, images))')
-      .ilike('order_number', orderNumber.trim())
+      .ilike('order_number', cleanOrderNumber)
       .single()
 
     if (error || !order) {
