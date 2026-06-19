@@ -169,7 +169,7 @@ function OrderSuccessPageContent() {
         </div>
 
         <div className='space-y-2'>
-          <Link href='/account'>
+          <Link href={`/track-order?order_number=${order.order_number}`}>
             <Button className='w-full bg-[#f59e0b] hover:bg-[#d97706] text-slate-900 font-semibold'>
               Track Order
             </Button>

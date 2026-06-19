@@ -34,7 +34,10 @@ export async function triggerOrderNotification(orderId: string, event: 'placed' 
     if (email) {
       const brandColor = '#5e35b1'
       const baseStyles = 'font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;'
-      
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+      const trackUrl = `${siteUrl}/track-order?order_number=${order.order_number}`
+      const trackButton = `<a href="${trackUrl}" style="display: inline-block; background-color: ${brandColor}; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 15px;">Track Your Order</a>`
+
       if (event === 'placed') {
         const paymentInfo = order.payment_mode === 'online' ? 'Your payment has been successfully captured.' : 'Payment Mode: Cash on Delivery (COD)'
         await sendEmail(
@@ -50,7 +53,8 @@ export async function triggerOrderNotification(orderId: string, event: 'placed' 
               <p style="margin: 5px 0;"><strong>Total Amount:</strong> ₹${order.final_total}</p>
               <p style="margin: 5px 0;"><strong>Payment Status:</strong> ${paymentInfo}</p>
             </div>
-            <p>You will receive another update when your order is delivered.</p>
+            ${trackButton}
+            <p style="margin-top: 20px;">You will receive another update when your order is delivered.</p>
             <p>Thanks,<br/>Selfaligned Team</p>
           </div>
           `
@@ -65,7 +69,8 @@ export async function triggerOrderNotification(orderId: string, event: 'placed' 
             <p>Dear ${name},</p>
             <p>Great news! Your order <strong>${order.order_number}</strong> has been successfully delivered.</p>
             <p>We hope you love your purchase. If you have any questions, feel free to contact our support.</p>
-            <p>Thanks,<br/>Selfaligned Team</p>
+            ${trackButton}
+            <p style="margin-top: 20px;">Thanks,<br/>Selfaligned Team</p>
           </div>
           `
         ).catch(console.error)
@@ -79,7 +84,8 @@ export async function triggerOrderNotification(orderId: string, event: 'placed' 
             <p>Dear ${name},</p>
             <p>We have successfully received the payment of <strong>₹${order.final_total}</strong> for your order <strong>${order.order_number}</strong>.</p>
             <p>Thank you for shopping with us!</p>
-            <p>Thanks,<br/>Selfaligned Team</p>
+            ${trackButton}
+            <p style="margin-top: 20px;">Thanks,<br/>Selfaligned Team</p>
           </div>
           `
         ).catch(console.error)

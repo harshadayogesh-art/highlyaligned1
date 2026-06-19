@@ -227,7 +227,7 @@ export default function CheckoutPage() {
       if (values.paymentMode === 'cod') {
         setOrderJustPlaced(true)
         clearCart()
-        triggerOrderNotification(data.orderId, 'placed')
+        await triggerOrderNotification(data.orderId, 'placed')
         window.location.href = `/order-success?order_id=${data.orderId}`
         return
       }

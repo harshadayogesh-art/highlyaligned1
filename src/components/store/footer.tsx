@@ -57,6 +57,7 @@ function StoreFooterContent({ settings }: { settings?: Record<string, unknown> }
             <div className="space-y-2">
               <Link href="/shop" className="block text-sm hover:text-[#f59e0b] transition-colors">Shop</Link>
               <Link href="/services" className="block text-sm hover:text-[#f59e0b] transition-colors">Services</Link>
+              <Link href="/track-order" className="block text-sm hover:text-[#f59e0b] transition-colors">Track Order</Link>
               <Link href="/about" className="block text-sm hover:text-[#f59e0b] transition-colors">About</Link>
               <Link href="/contact" className="block text-sm hover:text-[#f59e0b] transition-colors">Contact</Link>
               <Link href="/kundali" className="block text-sm hover:text-[#f59e0b] transition-colors">Free Kundali</Link>
