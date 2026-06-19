@@ -43,6 +43,12 @@ export interface SiteSettings {
     favicon_url: string
   }
   gst_enabled?: boolean
+  cod_enabled?: boolean
+  delivery_config?: {
+    enabled: boolean
+    charge: number
+    free_above: number
+  }
 }
 
 export function useSettings() {

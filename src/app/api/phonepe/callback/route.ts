@@ -55,12 +55,13 @@ export async function POST(req: Request) {
         .from('orders')
         .update({
           payment_status: 'captured',
-          phonepe_payment_id: transactionId ?? null,
+          razorpay_payment_id: transactionId ?? null,
           status: 'accepted',
         })
         .eq('id', order.id)
 
       await triggerOrderNotification(order.id, 'placed')
+      await triggerOrderNotification(order.id, 'payment_captured')
       return new Response('OK')
     }
 

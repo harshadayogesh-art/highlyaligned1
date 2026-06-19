@@ -165,7 +165,7 @@ export async function POST(req: Request) {
       stockRollback.push({ id: product.id, qty: item.quantity })
     }
 
-    const shipping = subtotal >= 999 ? 0 : 50
+    const shipping = subtotal >= 999 ? 0 : 50  // will be overridden below after fetching settings
 
     let discount = 0
     let appliedCouponCode: string | null = null
@@ -211,6 +211,42 @@ export async function POST(req: Request) {
     const sellerStateCode = String(gstConfig.state_code || '07')
     const buyerStateCode = STATE_TO_GST_CODE[address.state] ?? sellerStateCode
 
+    // Fetch cod_enabled setting
+    const { data: codSetting } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'cod_enabled')
+      .maybeSingle()
+    const codEnabled = (codSetting?.value as boolean) ?? true
+
+    if (paymentMode === 'cod' && !codEnabled) {
+      return NextResponse.json({ error: 'Cash on Delivery is currently not available' }, { status: 400 })
+    }
+
+    // Fetch delivery_config setting
+    const { data: deliverySetting } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'delivery_config')
+      .maybeSingle()
+    const deliveryConfig = deliverySetting?.value as { enabled?: boolean; charge?: number; free_above?: number } | null
+
+    // Compute actual shipping from settings
+    let actualShipping: number
+    if (deliveryConfig) {
+      if (deliveryConfig.enabled === false) {
+        actualShipping = 0
+      } else {
+        const freeAbove = deliveryConfig.free_above ?? 999
+        const charge = deliveryConfig.charge ?? 50
+        actualShipping = subtotal >= freeAbove ? 0 : charge
+      }
+    } else {
+      actualShipping = subtotal >= 999 ? 0 : 50
+    }
+    // Override the initial shipping variable
+    const resolvedShipping = actualShipping
+
     let cgstAmount = 0, sgstAmount = 0, igstAmount = 0
     if (gstAmount > 0) {
       if (sellerStateCode === buyerStateCode) {
@@ -221,7 +257,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const finalTotal = Math.max(0, subtotal + shipping + gstAmount - discount)
+    const finalTotal = Math.max(0, subtotal + resolvedShipping + gstAmount - discount)
     const orderNumber = `HA-${Date.now()}`
 
     const insertPayload: Record<string, unknown> = {
@@ -235,7 +271,7 @@ export async function POST(req: Request) {
       igst_amount: igstAmount,
       discount_amount: discount,
       coupon_code: appliedCouponCode,
-      shipping_amount: shipping,
+      shipping_amount: resolvedShipping,
       final_total: finalTotal,
       payment_mode: paymentMode,
       payment_status: 'pending',
@@ -336,7 +372,7 @@ export async function POST(req: Request) {
       orderId: order.id,
       orderNumber: order.order_number,
       subtotal,
-      shipping,
+      shipping: resolvedShipping,
       gstAmount,
       discount,
       finalTotal,

@@ -67,7 +67,7 @@ export function usePayments(tab: 'all' | 'cod' | 'online') {
         const { data: bookings, error: bookingsError } = await supabase
           .from('bookings')
           .select(
-            'id, booking_number, amount, payment_status, razorpay_order_id, created_at, status, services(name), profiles(name, phone)'
+            'id, booking_number, amount, payment_status, created_at, status, services(name), profiles(name, phone)'
           )
           .order('created_at', { ascending: false })
 
@@ -85,7 +85,7 @@ export function usePayments(tab: 'all' | 'cod' | 'online') {
             payment_status: b.payment_status,
             cod_collected: false,
             cod_collection_date: null,
-            razorpay_id: b.razorpay_order_id,
+            razorpay_id: null,
             created_at: b.created_at,
             source: b.services?.name || b.status,
           })
@@ -102,6 +102,8 @@ export function usePayments(tab: 'all' | 'cod' | 'online') {
     },
   })
 }
+
+import { triggerOrderNotification } from '@/app/actions/notifications'
 
 export function useMarkCodCollected() {
   const queryClient = useQueryClient()
@@ -132,10 +134,12 @@ export function useMarkCodCollected() {
       }
       return { orderId, amount }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['payments'] })
       queryClient.invalidateQueries({ queryKey: ['orders'] })
       toast.success('COD payment marked as collected')
+      // Trigger payment captured notification
+      triggerOrderNotification(data.orderId, 'payment_captured').catch(console.error)
     },
     onError: (err: Error) => toast.error(err.message),
   })

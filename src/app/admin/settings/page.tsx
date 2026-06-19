@@ -129,6 +129,7 @@ export default function SettingsPage() {
       <Tabs defaultValue="gst">
         <TabsList className="flex flex-wrap w-full h-auto">
           <TabsTrigger value="gst">GST</TabsTrigger>
+          <TabsTrigger value="commerce">Commerce</TabsTrigger>
           <TabsTrigger value="footer">Footer</TabsTrigger>
           <TabsTrigger value="social">Social</TabsTrigger>
           <TabsTrigger value="contact">Contact</TabsTrigger>
@@ -144,6 +145,10 @@ export default function SettingsPage() {
           <GSTTab settings={settings} />
         </TabsContent>
 
+        {/* Commerce Settings */}
+        <TabsContent value="commerce" className="space-y-4">
+          <CommerceTab settings={settings} />
+        </TabsContent>
         {/* Footer Config */}
         <TabsContent value="footer" className="space-y-4">
           <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
@@ -516,6 +521,137 @@ function GSTTab({ settings }: { settings?: Record<string, unknown> }) {
           {enabled ? 'ENABLED' : 'DISABLED'}
         </span>
       </p>
+    </div>
+  )
+}
+
+function CommerceTab({ settings }: { settings?: Record<string, unknown> }) {
+  const queryClient = useQueryClient()
+  
+  const [codEnabled, setCodEnabled] = useState<boolean>(
+    (settings?.cod_enabled as boolean) ?? true
+  )
+
+  const defaultDelivery = { enabled: true, charge: 50, free_above: 999 }
+  const deliveryConfig = (settings?.delivery_config as Record<string, unknown>) || defaultDelivery
+  const [delivery, setDelivery] = useState({
+    enabled: (deliveryConfig.enabled as boolean) ?? true,
+    charge: (deliveryConfig.charge as number) ?? 50,
+    free_above: (deliveryConfig.free_above as number) ?? 999,
+  })
+
+  useEffect(() => {
+    setCodEnabled((settings?.cod_enabled as boolean) ?? true)
+    const dc = (settings?.delivery_config as Record<string, unknown>) || defaultDelivery
+    setDelivery({
+      enabled: (dc.enabled as boolean) ?? true,
+      charge: (dc.charge as number) ?? 50,
+      free_above: (dc.free_above as number) ?? 999,
+    })
+  }, [settings])
+
+  const codMutation = useMutation({
+    mutationFn: async (val: boolean) => {
+      const supabase = createClient()
+      await supabase
+        .from('settings')
+        .upsert({ key: 'cod_enabled', value: val }, { onConflict: 'key' })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-settings'] })
+      queryClient.invalidateQueries({ queryKey: ['settings-all'] })
+      toast.success('COD setting saved!')
+    },
+    onError: () => toast.error('Failed to save COD setting'),
+  })
+
+  const deliveryMutation = useMutation({
+    mutationFn: async () => {
+      const supabase = createClient()
+      await supabase
+        .from('settings')
+        .upsert({ key: 'delivery_config', value: delivery }, { onConflict: 'key' })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-settings'] })
+      queryClient.invalidateQueries({ queryKey: ['settings-all'] })
+      toast.success('Delivery config saved!')
+    },
+    onError: () => toast.error('Failed to save delivery config'),
+  })
+
+  return (
+    <div className="space-y-6">
+      {/* Cash on Delivery */}
+      <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+        <h3 className="font-semibold text-slate-900">Payment Settings</h3>
+        <div className="flex items-center justify-between py-4 border-b border-slate-100">
+          <div>
+            <p className="font-medium text-slate-800">Enable Cash on Delivery (COD)</p>
+            <p className="text-sm text-slate-500">
+              When enabled, customers can choose COD at checkout.
+            </p>
+          </div>
+          <Switch
+            checked={codEnabled}
+            onCheckedChange={(val) => {
+              setCodEnabled(val)
+              codMutation.mutate(val)
+            }}
+            disabled={codMutation.isPending}
+          />
+        </div>
+      </div>
+
+      {/* Delivery Charges */}
+      <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
+        <h3 className="font-semibold text-slate-900">Delivery Charges</h3>
+        <div className="flex items-center justify-between py-4 border-b border-slate-100">
+          <div>
+            <p className="font-medium text-slate-800">Enable Delivery Charges</p>
+            <p className="text-sm text-slate-500">
+              If disabled, shipping will be free for all orders.
+            </p>
+          </div>
+          <Switch
+            checked={delivery.enabled}
+            onCheckedChange={(val) => setDelivery((d) => ({ ...d, enabled: val }))}
+          />
+        </div>
+        
+        {delivery.enabled && (
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Standard Delivery Charge (₹)</Label>
+              <Input
+                type="number"
+                value={delivery.charge}
+                onChange={(e) => setDelivery((d) => ({ ...d, charge: Number(e.target.value) }))}
+                placeholder="50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Free Shipping Threshold (₹)</Label>
+              <Input
+                type="number"
+                value={delivery.free_above}
+                onChange={(e) => setDelivery((d) => ({ ...d, free_above: Number(e.target.value) }))}
+                placeholder="999"
+              />
+              <p className="text-xs text-slate-500">Orders above this amount get free shipping</p>
+            </div>
+          </div>
+        )}
+        
+        <Button
+          onClick={() => deliveryMutation.mutate()}
+          disabled={deliveryMutation.isPending}
+          className="bg-[#f59e0b] text-slate-900 mt-4"
+        >
+          {deliveryMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+          Save Delivery Config
+        </Button>
+      </div>
     </div>
   )
 }

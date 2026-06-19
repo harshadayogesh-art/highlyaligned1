@@ -3,7 +3,7 @@
 import { sendWhatsApp, sendEmail } from '@/lib/notifications'
 import { createClient } from '@/lib/supabase/server'
 
-export async function triggerOrderNotification(orderId: string, event: 'placed' | 'accepted' | 'shipped' | 'delivered') {
+export async function triggerOrderNotification(orderId: string, event: 'placed' | 'accepted' | 'shipped' | 'delivered' | 'payment_captured') {
   try {
     const supabase = await createClient()
     const { data: order } = await supabase
@@ -27,16 +27,63 @@ export async function triggerOrderNotification(orderId: string, event: 'placed' 
       await sendWhatsApp(phone, 'order_update', {
         1: name,
         2: order.order_number,
-        3: event === 'placed' ? 'placed successfully' : event,
+        3: event === 'placed' ? 'placed successfully' : event === 'payment_captured' ? 'payment received' : event,
       }).catch(console.error)
     }
 
-    if (email && event === 'placed') {
-      await sendEmail(
-        email,
-        `Order Confirmation - ${order.order_number}`,
-        `<p>Dear ${name},</p><p>Your order <strong>${order.order_number}</strong> has been placed successfully.</p><p>Total: Rs.${order.final_total}</p>`
-      ).catch(console.error)
+    if (email) {
+      const brandColor = '#5e35b1'
+      const baseStyles = 'font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;'
+      
+      if (event === 'placed') {
+        const paymentInfo = order.payment_mode === 'online' ? 'Your payment has been successfully captured.' : 'Payment Mode: Cash on Delivery (COD)'
+        await sendEmail(
+          email,
+          `Order Confirmation - ${order.order_number}`,
+          `
+          <div style="${baseStyles}">
+            <h2 style="color: ${brandColor};">Order Placed Successfully</h2>
+            <p>Dear ${name},</p>
+            <p>Thank you for your order! We are processing it and will ship it soon.</p>
+            <div style="background: #f9f9f9; padding: 15px; border-radius: 6px; margin: 20px 0;">
+              <p style="margin: 5px 0;"><strong>Order Number:</strong> ${order.order_number}</p>
+              <p style="margin: 5px 0;"><strong>Total Amount:</strong> ₹${order.final_total}</p>
+              <p style="margin: 5px 0;"><strong>Payment Status:</strong> ${paymentInfo}</p>
+            </div>
+            <p>You will receive another update when your order is delivered.</p>
+            <p>Thanks,<br/>Selfaligned Team</p>
+          </div>
+          `
+        ).catch(console.error)
+      } else if (event === 'delivered') {
+        await sendEmail(
+          email,
+          `Your Order ${order.order_number} has been Delivered!`,
+          `
+          <div style="${baseStyles}">
+            <h2 style="color: #10b981;">Order Delivered</h2>
+            <p>Dear ${name},</p>
+            <p>Great news! Your order <strong>${order.order_number}</strong> has been successfully delivered.</p>
+            <p>We hope you love your purchase. If you have any questions, feel free to contact our support.</p>
+            <p>Thanks,<br/>Selfaligned Team</p>
+          </div>
+          `
+        ).catch(console.error)
+      } else if (event === 'payment_captured') {
+        await sendEmail(
+          email,
+          `Payment Received - Order ${order.order_number}`,
+          `
+          <div style="${baseStyles}">
+            <h2 style="color: ${brandColor};">Payment Successful</h2>
+            <p>Dear ${name},</p>
+            <p>We have successfully received the payment of <strong>₹${order.final_total}</strong> for your order <strong>${order.order_number}</strong>.</p>
+            <p>Thank you for shopping with us!</p>
+            <p>Thanks,<br/>Selfaligned Team</p>
+          </div>
+          `
+        ).catch(console.error)
+      }
     }
   } catch (error) {
     console.error('Failed to trigger order notification', error)

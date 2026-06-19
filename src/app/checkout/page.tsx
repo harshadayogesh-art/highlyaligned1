@@ -64,6 +64,8 @@ export default function CheckoutPage() {
   const syncPrices = useCartStore((s) => s.syncPrices)
   const { data: settings } = useSettings()
   const gstEnabled = settings?.gst_enabled ?? false
+  const codEnabled = settings?.cod_enabled ?? true
+  const deliveryConfig = settings?.delivery_config
   const [step, setStep] = useState<CheckoutStep>('auth')
   const [placing, setPlacing] = useState(false)
   const [orderJustPlaced, setOrderJustPlaced] = useState(false)
@@ -155,7 +157,7 @@ export default function CheckoutPage() {
   const paymentMode = watch('paymentMode')
 
 
-  const { subtotal, shipping, gstAmount, savings } = calculateOrderTotals(items, gstEnabled, 0)
+  const { subtotal, shipping, gstAmount, savings } = calculateOrderTotals(items, gstEnabled, 0, deliveryConfig)
   const discount = appliedCoupon?.discount || 0
   const finalTotal = Math.max(0, subtotal + shipping + gstAmount - discount)
 
@@ -480,6 +482,7 @@ export default function CheckoutPage() {
           <div className='bg-white border border-slate-100 rounded-xl p-4 space-y-4'>
             <h2 className='font-semibold text-slate-900'>Payment Method</h2>
             <div className='space-y-2'>
+              {codEnabled && (
               <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer ${paymentMode === 'cod' ? 'border-[#f59e0b] bg-amber-50' : 'border-slate-200'}`}>
                 <input type='radio' value='cod' {...register('paymentMode')} className='hidden' />
                 <Banknote className='h-5 w-5 text-emerald-600' />
@@ -491,6 +494,7 @@ export default function CheckoutPage() {
                   <p className='text-xs text-red-500'>Not available for orders above Rs.5000</p>
                 )}
               </label>
+              )}
               <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer ${paymentMode === 'online' ? 'border-[#5e35b1] bg-purple-50' : 'border-slate-200'}`}>
                 <input type='radio' value='online' {...register('paymentMode')} className='hidden' />
                 <CreditCard className='h-5 w-5 text-[#5e35b1]' />
