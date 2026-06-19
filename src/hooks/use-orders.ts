@@ -76,7 +76,8 @@ export function useOrders(options: UseOrdersOptions = {}) {
       if (status) query = query.eq('status', status)
       if (customerId) query = query.eq('customer_id', customerId)
       if (search) {
-        query = query.ilike('order_number', `%${search}%`)
+        const cleanSearch = search.trim().replace(/^#/, '')
+        query = query.ilike('order_number', `%${cleanSearch}%`)
       }
 
       const from = (page - 1) * limit
