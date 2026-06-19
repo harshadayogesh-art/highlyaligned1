@@ -353,7 +353,7 @@ export function OrderDetailDrawer({ orderId, open, onOpenChange, onRequestShip }
                 </div>
                 {order.razorpay_order_id && (
                   <div className='flex items-center justify-between'>
-                    <span className='text-sm text-slate-500'>Razorpay Order</span>
+                    <span className='text-sm text-slate-500'>PhonePe Order</span>
                     <span className='text-xs font-mono text-slate-600 flex items-center'>
                       {order.razorpay_order_id}
                       <CopyButton text={order.razorpay_order_id} />
@@ -362,7 +362,7 @@ export function OrderDetailDrawer({ orderId, open, onOpenChange, onRequestShip }
                 )}
                 {order.razorpay_payment_id && (
                   <div className='flex items-center justify-between'>
-                    <span className='text-sm text-slate-500'>Razorpay Payment</span>
+                    <span className='text-sm text-slate-500'>PhonePe Payment</span>
                     <span className='text-xs font-mono text-slate-600 flex items-center'>
                       {order.razorpay_payment_id}
                       <CopyButton text={order.razorpay_payment_id} />

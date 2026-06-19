@@ -40,8 +40,8 @@ All astrology consultations, readings, and spiritual guidance provided through S
 - Users must conduct themselves respectfully during consultations.
 
 ## 6. Payments
-- All online payments are processed securely via **Razorpay**.
-- We do **not** store your credit/debit card details. Razorpay is PCI-DSS compliant.
+- All online payments are processed securely via **PhonePe**.
+- We do **not** store your credit/debit card details. PhonePe is PCI-DSS compliant.
 - Cash on Delivery (COD) is available for select orders up to Rs. 5,000.
 
 ## 7. Intellectual Property
@@ -77,7 +77,7 @@ Selfaligned ("we," "us," "our") is committed to protecting your privacy. This Pr
 - **Identity Data:** Name, email address, phone number.
 - **Birth Data:** Date of birth, time of birth, place of birth (used for generating astrology reports).
 - **Address Data:** Billing and shipping addresses for product orders.
-- **Payment Data:** Handled entirely by **Razorpay**. We do not store card numbers, CVV, or OTPs.
+- **Payment Data:** Handled entirely by **PhonePe**. We do not store card numbers, CVV, or OTPs.
 - **Technical Data:** IP address, browser type, device information, cookies.
 - **Communications:** WhatsApp messages, emails, and consultation notes.
 
@@ -94,7 +94,7 @@ All user data is stored on servers located within **India** (via Supabase). We c
 
 ## 5. Sharing of Information
 We do **not** sell your personal data. We share information only with:
-- **Razorpay** — for payment processing.
+- **PhonePe** — for payment processing.
 - **Logistics Partners** — for delivery of physical products.
 - **Legal Authorities** — when required by court order or applicable law.
 
@@ -114,7 +114,7 @@ To exercise these rights, email us at self.aligned1111@gmail.com.
 
 ## 8. Security Measures
 - All data transmission uses **HTTPS/TLS encryption**.
-- Payment data is protected by Razorpay's **PCI-DSS Level 1** compliance.
+- Payment data is protected by PhonePe's **PCI-DSS Level 1** compliance.
 - We do not store credit card details on our servers.
 - Access to user data is restricted to authorized personnel only.
 

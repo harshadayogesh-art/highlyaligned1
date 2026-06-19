@@ -17,7 +17,6 @@ import { useAuth } from '@/hooks/use-auth'
 import { useSettings } from '@/hooks/use-settings'
 import { checkoutSchema, type CheckoutFormValues } from '@/schemas/checkout'
 import { calculateOrderTotals } from '@/lib/utils/order-calculations'
-import { loadRazorpayScript, openRazorpayCheckout } from '@/lib/razorpay'
 import { triggerOrderNotification } from '@/app/actions/notifications'
 import { useValidateCoupon } from '@/hooks/use-coupons'
 import { toast } from 'sonner'
@@ -154,7 +153,7 @@ export default function CheckoutPage() {
   }, [profile, setValue])
 
   const paymentMode = watch('paymentMode')
-  const isTestMode = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID?.startsWith('rzp_test_') ?? false
+
 
   const { subtotal, shipping, gstAmount, savings } = calculateOrderTotals(items, gstEnabled, 0)
   const discount = appliedCoupon?.discount || 0
@@ -231,52 +230,15 @@ export default function CheckoutPage() {
         return
       }
 
-      // Online payment flow
-      const loaded = await loadRazorpayScript()
-      if (!loaded) {
-        toast.error('Payment failed to load')
+      // Online payment — redirect to PhonePe hosted checkout
+      if (!data.phonePeRedirectUrl) {
+        toast.error('Payment could not be initiated. Please try again.')
         setPlacing(false)
         return
       }
 
-      openRazorpayCheckout({
-        orderId: data.razorpayOrderId,
-        amountInPaise: data.razorpayAmount ?? Math.round(data.finalTotal * 100),
-        name: 'Selfaligned',
-        description: `Order ${data.orderNumber}`,
-        prefill: {
-          name: values.address.name,
-          email: values.address.email,
-          contact: values.address.phone,
-        },
-        onSuccess: async (response) => {
-          const verifyRes = await fetch('/api/razorpay/verify-payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature,
-              orderId: data.orderId,
-            }),
-          })
-          if (!verifyRes.ok) {
-            const err = await verifyRes.json().catch(() => ({ error: 'Verification failed' }))
-            toast.error(err.error || 'Payment verification failed')
-            setPlacing(false)
-            return
-          }
-          clearCart()
-          router.push(`/order-success?order_id=${data.orderId}`)
-        },
-        onDismiss: () => {
-          setPlacing(false)
-        },
-        onError: (response) => {
-          toast.error(response.error.description || 'Payment failed. Please try again.')
-          setPlacing(false)
-        },
-      })
+      // Redirect user to PhonePe hosted checkout page
+      window.location.href = data.phonePeRedirectUrl
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to place order')
       console.error(err)
@@ -529,7 +491,21 @@ export default function CheckoutPage() {
                   <p className='text-xs text-red-500'>Not available for orders above Rs.5000</p>
                 )}
               </label>
+              <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer ${paymentMode === 'online' ? 'border-[#5e35b1] bg-purple-50' : 'border-slate-200'}`}>
+                <input type='radio' value='online' {...register('paymentMode')} className='hidden' />
+                <CreditCard className='h-5 w-5 text-[#5e35b1]' />
+                <div className='flex-1'>
+                  <p className='font-medium text-sm'>Pay Online via PhonePe</p>
+                  <p className='text-xs text-slate-500'>UPI, Cards, Net Banking &amp; more — secured by PhonePe</p>
+                </div>
+              </label>
             </div>
+            {paymentMode === 'online' && (
+              <p className='text-xs text-slate-500 flex items-center gap-1'>
+                <Info className='h-3.5 w-3.5 shrink-0' />
+                You&apos;ll be redirected to PhonePe&apos;s secure payment page.
+              </p>
+            )}
           </div>
         </div>
 

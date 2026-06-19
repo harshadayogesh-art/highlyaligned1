@@ -12,7 +12,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/hooks/use-auth'
 import { useAvailableSlots } from '@/hooks/use-available-slots'
 import { useCreateBooking } from '@/hooks/use-bookings'
-import { loadRazorpayScript, createRazorpayOrder, openRazorpayCheckout } from '@/lib/razorpay'
 import { toast } from 'sonner'
 import { CalendarDays, Clock, ChevronLeft, CheckCircle } from 'lucide-react'
 
@@ -105,61 +104,34 @@ function BookingPageContent() {
       intake_data: intake,
       amount: selectedService.price,
       status: 'pending',
-      payment_status: payNow ? 'pending' : 'pending',
+      payment_status: 'pending',
     }
 
     const booking = await createBooking.mutateAsync(payload)
     setBookingData(booking)
 
     if (payNow && booking) {
-      const rzpOrder = await createRazorpayOrder({
-        amount: selectedService.price,
-        receipt: booking.booking_number,
-      })
-
-      const supabase = createClient()
-      await supabase.from('bookings').update({
-        razorpay_order_id: rzpOrder.orderId,
-      }).eq('id', booking.id)
-
-      const loaded = await loadRazorpayScript()
-      if (!loaded) {
-        toast.error('Payment failed to load')
-        return
+      // Initiate PhonePe payment — redirect to hosted checkout
+      const amountInPaise = Math.round(selectedService.price * 100)
+      try {
+        const res = await fetch('/api/phonepe/initiate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: booking.id,
+            amountInPaise,
+            mobileNumber: intake.phone,
+          }),
+        })
+        const data = await res.json() as { redirectUrl?: string; error?: string }
+        if (!res.ok || !data.redirectUrl) {
+          toast.error(data.error || 'Failed to initiate payment')
+          return
+        }
+        window.location.href = data.redirectUrl
+      } catch {
+        toast.error('Payment initiation failed. Please try again.')
       }
-
-      openRazorpayCheckout({
-        orderId: rzpOrder.orderId,
-        amountInPaise: rzpOrder.amount,
-        name: 'Selfaligned',
-        description: `Booking ${booking.booking_number}`,
-        prefill: {
-          name: intake.name,
-          email: intake.email,
-          contact: intake.phone,
-        },
-        onSuccess: async (response) => {
-          const verifyRes = await fetch('/api/razorpay/verify-payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_signature: response.razorpay_signature,
-              bookingId: booking.id,
-            }),
-          })
-          if (!verifyRes.ok) {
-            const err = await verifyRes.json().catch(() => ({ error: 'Verification failed' }))
-            toast.error(err.error || 'Payment verification failed')
-            return
-          }
-          setBookingComplete(true)
-        },
-        onError: (response) => {
-          toast.error(response.error.description || 'Payment failed. Please try again.')
-        },
-      })
     } else {
       setBookingComplete(true)
     }

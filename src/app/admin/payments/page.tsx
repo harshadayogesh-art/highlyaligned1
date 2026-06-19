@@ -275,7 +275,7 @@ export default function PaymentsPage() {
                             className='h-7 w-7'
                             onClick={() => {
                               navigator.clipboard.writeText(p.razorpay_id!)
-                              toast.success('Razorpay ID copied')
+                              toast.success('Payment ID copied')
                             }}
                             title={p.razorpay_id}
                           >

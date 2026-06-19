@@ -1,17 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import Razorpay from 'razorpay'
+import { initiatePhonePePayment } from '@/lib/phonepe'
 import { z } from 'zod'
 import { getServiceClient } from '@/lib/supabase/service'
-
-function getRazorpay() {
-  const keyId = process.env.RAZORPAY_KEY_ID
-  const keySecret = process.env.RAZORPAY_KEY_SECRET
-  if (!keyId || !keySecret) {
-    throw new Error('Razorpay credentials not configured')
-  }
-  return new Razorpay({ key_id: keyId, key_secret: keySecret })
-}
 
 const STATE_TO_GST_CODE: Record<string, string> = {
   'Andhra Pradesh': '37',
@@ -314,33 +305,29 @@ export async function POST(req: Request) {
       }
     }
 
-    let razorpayOrderId: string | null = null
-    let razorpayAmount: number | null = null
+    let phonePeRedirectUrl: string | null = null
     if (paymentMode === 'online') {
       try {
-        razorpayAmount = Math.round(finalTotal * 100)
-        if (razorpayAmount < 100) {
+        const amountInPaise = Math.round(finalTotal * 100)
+        if (amountInPaise < 100) {
           return NextResponse.json(
-            { error: 'Order total must be at least Rs.1 for online payment' },
+            { error: 'Order total must be at least ₹1 for online payment' },
             { status: 400 }
           )
         }
-        const razorpay = getRazorpay()
-        const rzpOrder = await razorpay.orders.create({
-          amount: razorpayAmount,
-          currency: 'INR',
-          receipt: orderNumber.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40),
-          notes: { source: 'Selfaligned', order_id: order.id, type: 'order' },
-        })
-        razorpayOrderId = rzpOrder.id
 
-        await supabase.from('orders').update({
-          razorpay_order_id: rzpOrder.id,
-        }).eq('id', order.id)
+        const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+        const redirectUrl = `${siteUrl}/payment-redirect?orderId=${order.id}`
+
+        phonePeRedirectUrl = await initiatePhonePePayment({
+          merchantOrderId: order.id,
+          amountInPaise,
+          redirectUrl,
+        })
       } catch (err: unknown) {
-        const rzpErr = err as { error?: { description?: string }; message?: string }
-        console.error('Razorpay order creation error:', err)
-        const msg = rzpErr?.error?.description || rzpErr?.message || 'Failed to create payment order'
+        const ppErr = err as { message?: string }
+        console.error('PhonePe payment initiation error:', err)
+        const msg = ppErr?.message || 'Failed to initiate payment'
         return NextResponse.json({ error: msg, orderId: order.id }, { status: 500 })
       }
     }
@@ -353,8 +340,7 @@ export async function POST(req: Request) {
       gstAmount,
       discount,
       finalTotal,
-      razorpayOrderId,
-      razorpayAmount,
+      phonePeRedirectUrl,
       paymentMode,
     })
   } catch (err: unknown) {
