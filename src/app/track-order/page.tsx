@@ -124,8 +124,8 @@ function TrackOrderContent() {
                 const Icon = s.icon
                 return (
                   <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                    <div className={\`h-10 w-10 rounded-full flex items-center justify-center \${s.color.replace('text-', 'bg-').replace('100', '200')}\`}>
-                      <Icon className={\`h-5 w-5 \${s.color.split(' ')[1]}\`} />
+                    <div className={`h-10 w-10 rounded-full flex items-center justify-center ${s.color.replace('text-', 'bg-').replace('100', '200')}`}>
+                      <Icon className={`h-5 w-5 ${s.color.split(' ')[1]}`} />
                     </div>
                     <div>
                       <p className="font-semibold text-slate-900">{s.label}</p>
