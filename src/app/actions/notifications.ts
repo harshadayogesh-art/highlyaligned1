@@ -90,7 +90,7 @@ export async function triggerOrderNotification(orderId: string, event: 'placed' 
           `
         ).catch(console.error)
       } else if (event === 'payment_failed') {
-        const retryUrl = `${siteUrl}/checkout`
+        const retryUrl = `${siteUrl}/api/orders/retry?orderId=${order.id}`
         const retryButton = `<a href="${retryUrl}" style="display: inline-block; background-color: #ef4444; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 15px;">Try Payment Again</a>`
         await sendEmail(
           email,

@@ -60,8 +60,13 @@ import { Resend } from 'resend'
 export async function sendEmail(to: string, subject: string, html: string) {
   try {
     const resend = new Resend(process.env.RESEND_API_KEY)
+    let fromAddress = process.env.FROM_EMAIL || 'info@selfaligned.in'
+    if (!fromAddress.includes('<')) {
+      fromAddress = `Selfaligned <${fromAddress}>`
+    }
+
     const data = await resend.emails.send({
-      from: process.env.FROM_EMAIL || 'Harshada <harshada@Selfaligned.in>',
+      from: fromAddress,
       to,
       subject,
       html,
