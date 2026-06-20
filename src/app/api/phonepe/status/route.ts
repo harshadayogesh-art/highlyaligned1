@@ -13,8 +13,8 @@ export async function GET(req: Request) {
     const status = await getPhonePeOrderStatus(orderId)
 
     if (status.state === 'COMPLETED') {
-      const { createClient } = await import('@/lib/supabase/server')
-      const supabase = await createClient()
+      const { getServiceClient } = await import('@/lib/supabase/service')
+      const supabase = getServiceClient('phonepe-status-update')
 
       // Check if it's an order
       const { data: order } = await supabase.from('orders').select('id, payment_status').eq('id', orderId).maybeSingle()

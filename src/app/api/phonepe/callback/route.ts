@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { getServiceClient } from '@/lib/supabase/service'
 import { triggerOrderNotification, triggerBookingNotification } from '@/app/actions/notifications'
 import { getPhonePeClient } from '@/lib/phonepe'
 
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
       return new Response('OK')
     }
 
-    const supabase = await createClient()
+    const supabase = getServiceClient('phonepe-webhook')
 
     // Try to match orders table
     const { data: order } = await supabase
