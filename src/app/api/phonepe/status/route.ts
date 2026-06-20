@@ -22,7 +22,7 @@ export async function GET(req: Request) {
       if (order && order.payment_status === 'pending') {
         const { data: updated } = await supabase.from('orders').update({
           payment_status: 'captured',
-          razorpay_payment_id: status.transactionId ?? null,
+          razorpay_payment_id: status.paymentDetails?.[0]?.transactionId ?? null,
           status: 'accepted',
         }).eq('id', order.id).eq('payment_status', 'pending').select('id')
 
