@@ -3,7 +3,7 @@
 import { sendWhatsApp, sendEmail } from '@/lib/notifications'
 import { createClient } from '@/lib/supabase/server'
 
-export async function triggerOrderNotification(orderId: string, event: 'placed' | 'accepted' | 'shipped' | 'delivered' | 'payment_captured') {
+export async function triggerOrderNotification(orderId: string, event: 'placed' | 'accepted' | 'shipped' | 'delivered' | 'payment_captured' | 'payment_failed') {
   try {
     const supabase = await createClient()
     const { data: order } = await supabase
@@ -27,7 +27,7 @@ export async function triggerOrderNotification(orderId: string, event: 'placed' 
       await sendWhatsApp(phone, 'order_update', {
         1: name,
         2: order.order_number,
-        3: event === 'placed' ? 'placed successfully' : event === 'payment_captured' ? 'payment received' : event,
+        3: event === 'placed' ? 'placed successfully' : event === 'payment_captured' ? 'payment received' : event === 'payment_failed' ? 'payment failed' : event,
       }).catch(console.error)
     }
 
@@ -86,6 +86,24 @@ export async function triggerOrderNotification(orderId: string, event: 'placed' 
             <p>Thank you for shopping with us!</p>
             ${trackButton}
             <p style="margin-top: 20px;">Thanks,<br/>Selfaligned Team</p>
+          </div>
+          `
+        ).catch(console.error)
+      } else if (event === 'payment_failed') {
+        const retryUrl = `${siteUrl}/checkout`
+        const retryButton = `<a href="${retryUrl}" style="display: inline-block; background-color: #ef4444; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 15px;">Try Payment Again</a>`
+        await sendEmail(
+          email,
+          `Payment Failed - Order ${order.order_number}`,
+          `
+          <div style="${baseStyles}">
+            <h2 style="color: #ef4444;">Payment Failed</h2>
+            <p>Dear ${name},</p>
+            <p>Unfortunately, the payment of <strong>₹${order.final_total}</strong> for your order <strong>${order.order_number}</strong> has failed.</p>
+            <p>Don't worry, your items are still in your cart. You can try completing your purchase again using a different payment method.</p>
+            ${retryButton}
+            <p style="margin-top: 20px;">If you need any assistance, feel free to contact us.</p>
+            <p>Thanks,<br/>Selfaligned Team</p>
           </div>
           `
         ).catch(console.error)

@@ -66,6 +66,11 @@ export async function sendEmail(to: string, subject: string, html: string) {
       subject,
       html,
     })
+    
+    if (data.error) {
+      throw new Error(data.error.message)
+    }
+    
     console.log('[EMAIL] Sent:', data)
     return data
   } catch (err) {

@@ -36,8 +36,8 @@ export async function POST(req: Request) {
     const state = event?.payload?.state
     const transactionId = event?.payload?.paymentDetails?.[0]?.transactionId
 
-    if (!merchantOrderId || state !== 'COMPLETED') {
-      // Not a completed payment — acknowledge and ignore
+    if (!merchantOrderId || (state !== 'COMPLETED' && state !== 'FAILED')) {
+      // Not a completed or failed payment — acknowledge and ignore
       return new Response('OK')
     }
 
@@ -51,7 +51,23 @@ export async function POST(req: Request) {
       .maybeSingle()
 
     if (order) {
-      await supabase
+      if (state === 'FAILED') {
+        const { data: updated } = await supabase
+          .from('orders')
+          .update({
+            payment_status: 'failed',
+          })
+          .eq('id', order.id)
+          .eq('payment_status', 'pending')
+          .select('id')
+
+        if (updated && updated.length > 0) {
+          await triggerOrderNotification(order.id, 'payment_failed')
+        }
+        return new Response('OK')
+      }
+
+      const { data: updated } = await supabase
         .from('orders')
         .update({
           payment_status: 'captured',
@@ -59,9 +75,21 @@ export async function POST(req: Request) {
           status: 'accepted',
         })
         .eq('id', order.id)
+        .eq('payment_status', 'pending')
+        .select('id')
 
-      await triggerOrderNotification(order.id, 'placed')
-      await triggerOrderNotification(order.id, 'payment_captured')
+      if (updated && updated.length > 0) {
+        await triggerOrderNotification(order.id, 'placed')
+        await triggerOrderNotification(order.id, 'payment_captured')
+      } else if (transactionId) {
+        // Ensure transaction ID is recorded even if state was already updated
+        await supabase
+          .from('orders')
+          .update({ razorpay_payment_id: transactionId })
+          .eq('id', order.id)
+          .is('razorpay_payment_id', null)
+      }
+      
       return new Response('OK')
     }
 
@@ -73,15 +101,29 @@ export async function POST(req: Request) {
       .maybeSingle()
 
     if (booking) {
-      await supabase
+      if (state === 'FAILED') {
+        await supabase
+          .from('bookings')
+          .update({ payment_status: 'failed' })
+          .eq('id', booking.id)
+          .eq('payment_status', 'pending')
+        return new Response('OK')
+      }
+
+      const { data: updated } = await supabase
         .from('bookings')
         .update({
           payment_status: 'captured',
           status: 'confirmed',
         })
         .eq('id', booking.id)
+        .eq('payment_status', 'pending')
+        .select('id')
 
-      await triggerBookingNotification(booking.id)
+      if (updated && updated.length > 0) {
+        await triggerBookingNotification(booking.id)
+      }
+      return new Response('OK')
     }
 
     return new Response('OK')

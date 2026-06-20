@@ -83,11 +83,27 @@ export async function POST(req: Request) {
       try {
         const { data: existing } = await supabase
           .from('orders')
-          .select('id')
+          .select('id, payment_mode, final_total, payment_status')
           .eq('idempotency_key', idempotencyKey)
           .maybeSingle()
         if (existing) {
-          return NextResponse.json({ orderId: existing.id, idempotencyKey })
+          let phonePeRedirectUrl: string | null = null
+          if (existing.payment_mode === 'online' && existing.payment_status === 'pending') {
+            const amountInPaise = Math.round(existing.final_total * 100)
+            const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+            const redirectUrl = `${siteUrl}/payment-redirect?orderId=${existing.id}`
+            phonePeRedirectUrl = await initiatePhonePePayment({
+              merchantOrderId: existing.id,
+              amountInPaise,
+              redirectUrl,
+            })
+          }
+          return NextResponse.json({ 
+            orderId: existing.id, 
+            idempotencyKey,
+            phonePeRedirectUrl,
+            paymentMode: existing.payment_mode 
+          })
         }
       } catch {
         // Column may not exist yet — continue with order creation
@@ -165,7 +181,37 @@ export async function POST(req: Request) {
       stockRollback.push({ id: product.id, qty: item.quantity })
     }
 
-    const shipping = subtotal >= 999 ? 0 : 50  // will be overridden below after fetching settings
+    const rollbackStock = async () => {
+      for (const rb of stockRollback) {
+        const p = productMap.get(rb.id)!
+        await service.from('products').update({ stock: p.stock }).eq('id', rb.id)
+      }
+      if (appliedCouponCode) {
+        await service.rpc('decrement_coupon_usage', { p_coupon_code: appliedCouponCode })
+      }
+    }
+
+    // Fetch delivery_config setting
+    const { data: deliverySetting } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'delivery_config')
+      .maybeSingle()
+    const deliveryConfig = deliverySetting?.value as { enabled?: boolean; charge?: number; free_above?: number } | null
+
+    // Compute actual shipping from settings
+    let shipping: number
+    if (deliveryConfig) {
+      if (deliveryConfig.enabled === false) {
+        shipping = 0
+      } else {
+        const freeAbove = deliveryConfig.free_above ?? 999
+        const charge = deliveryConfig.charge ?? 50
+        shipping = subtotal >= freeAbove ? 0 : charge
+      }
+    } else {
+      shipping = subtotal >= 999 ? 0 : 50
+    }
 
     let discount = 0
     let appliedCouponCode: string | null = null
@@ -223,30 +269,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Cash on Delivery is currently not available' }, { status: 400 })
     }
 
-    // Fetch delivery_config setting
-    const { data: deliverySetting } = await supabase
-      .from('settings')
-      .select('value')
-      .eq('key', 'delivery_config')
-      .maybeSingle()
-    const deliveryConfig = deliverySetting?.value as { enabled?: boolean; charge?: number; free_above?: number } | null
-
-    // Compute actual shipping from settings
-    let actualShipping: number
-    if (deliveryConfig) {
-      if (deliveryConfig.enabled === false) {
-        actualShipping = 0
-      } else {
-        const freeAbove = deliveryConfig.free_above ?? 999
-        const charge = deliveryConfig.charge ?? 50
-        actualShipping = subtotal >= freeAbove ? 0 : charge
-      }
-    } else {
-      actualShipping = subtotal >= 999 ? 0 : 50
-    }
-    // Override the initial shipping variable
-    const resolvedShipping = actualShipping
-
     let cgstAmount = 0, sgstAmount = 0, igstAmount = 0
     if (gstAmount > 0) {
       if (sellerStateCode === buyerStateCode) {
@@ -257,8 +279,18 @@ export async function POST(req: Request) {
       }
     }
 
-    const finalTotal = Math.max(0, subtotal + resolvedShipping + gstAmount - discount)
-    const orderNumber = `HA-${Date.now()}`
+    const finalTotal = Math.max(0, subtotal + shipping + gstAmount - discount)
+    const orderNumber = `HA-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`
+
+    if (appliedCouponCode) {
+      const { data: incrementSuccess, error: incrementError } = await service.rpc('increment_coupon_usage', {
+        p_coupon_code: appliedCouponCode
+      })
+      if (incrementError || !incrementSuccess) {
+        await rollbackStock()
+        return NextResponse.json({ error: 'This coupon has just reached its usage limit.' }, { status: 400 })
+      }
+    }
 
     const insertPayload: Record<string, unknown> = {
       order_number: orderNumber,
@@ -271,7 +303,7 @@ export async function POST(req: Request) {
       igst_amount: igstAmount,
       discount_amount: discount,
       coupon_code: appliedCouponCode,
-      shipping_amount: resolvedShipping,
+      shipping_amount: shipping,
       final_total: finalTotal,
       payment_mode: paymentMode,
       payment_status: 'pending',
@@ -304,6 +336,7 @@ export async function POST(req: Request) {
 
     if (orderError || !order) {
       console.error('Order creation error:', orderError)
+      await rollbackStock()
       return NextResponse.json({ error: orderError?.message || 'Failed to create order' }, { status: 500 })
     }
 
@@ -315,37 +348,15 @@ export async function POST(req: Request) {
       console.error('Order items error:', itemsError)
     }
 
-    if (appliedCouponCode) {
-      try {
-        const service = getServiceClient('orders-create-coupon-increment')
-        const { data: couponRow } = await service
-          .from('coupons')
-          .select('usage_count')
-          .eq('code', appliedCouponCode)
-          .single()
 
-        if (couponRow) {
-          const { error: incError } = await service
-            .from('coupons')
-            .update({ usage_count: (couponRow.usage_count || 0) + 1 })
-            .eq('code', appliedCouponCode)
-            .eq('usage_count', couponRow.usage_count || 0)
-
-          if (incError) {
-            console.error('Coupon race condition (safe to ignore if another request won):', incError)
-          }
-        }
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Unknown error'
-        console.error('Coupon usage increment error:', message)
-      }
-    }
 
     let phonePeRedirectUrl: string | null = null
     if (paymentMode === 'online') {
       try {
         const amountInPaise = Math.round(finalTotal * 100)
         if (amountInPaise < 100) {
+          await rollbackStock()
+          await service.from('orders').delete().eq('id', order.id)
           return NextResponse.json(
             { error: 'Order total must be at least ₹1 for online payment' },
             { status: 400 }
@@ -363,8 +374,12 @@ export async function POST(req: Request) {
       } catch (err: unknown) {
         const ppErr = err as { message?: string }
         console.error('PhonePe payment initiation error:', err)
+        
+        await rollbackStock()
+        await service.from('orders').delete().eq('id', order.id)
+        
         const msg = ppErr?.message || 'Failed to initiate payment'
-        return NextResponse.json({ error: msg, orderId: order.id }, { status: 500 })
+        return NextResponse.json({ error: msg }, { status: 500 })
       }
     }
 
@@ -372,7 +387,7 @@ export async function POST(req: Request) {
       orderId: order.id,
       orderNumber: order.order_number,
       subtotal,
-      shipping: resolvedShipping,
+      shipping,
       gstAmount,
       discount,
       finalTotal,
