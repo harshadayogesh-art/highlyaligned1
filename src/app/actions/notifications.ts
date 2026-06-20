@@ -1,11 +1,11 @@
 'use server'
 
 import { sendWhatsApp, sendEmail } from '@/lib/notifications'
-import { createClient } from '@/lib/supabase/server'
+import { getServiceClient } from '@/lib/supabase/service'
 
 export async function triggerOrderNotification(orderId: string, event: 'placed' | 'accepted' | 'shipped' | 'delivered' | 'payment_captured' | 'payment_failed') {
   try {
-    const supabase = await createClient()
+    const supabase = getServiceClient('notifications-order')
     const { data: order } = await supabase
       .from('orders')
       .select('*, profiles(*)')
@@ -116,7 +116,7 @@ export async function triggerOrderNotification(orderId: string, event: 'placed' 
 
 export async function triggerBookingNotification(bookingId: string) {
   try {
-    const supabase = await createClient()
+    const supabase = getServiceClient('notifications-booking')
     const { data: booking } = await supabase
       .from('bookings')
       .select('*, profiles(*), services(*)')
