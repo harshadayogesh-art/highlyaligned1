@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useCartStore } from '@/stores/cart-store'
 import { useAuth } from '@/hooks/use-auth'
 import { useSettings } from '@/hooks/use-settings'
@@ -20,41 +19,30 @@ import { calculateOrderTotals } from '@/lib/utils/order-calculations'
 import { triggerOrderNotification } from '@/app/actions/notifications'
 import { useValidateCoupon } from '@/hooks/use-coupons'
 import { toast } from 'sonner'
-import { CreditCard, Banknote, Tag, CheckCircle, LogIn, UserPlus, User, ShoppingBag, Loader2, MapPin, Plus, Info } from 'lucide-react'
+import {
+  CreditCard, Banknote, Tag, CheckCircle, LogIn, User,
+  ShoppingBag, Loader2, MapPin, Plus, Info, Zap, Shield,
+  Package, ChevronRight, CheckCheck
+} from 'lucide-react'
 import { useAddresses, useCreateAddress } from '@/hooks/use-addresses'
 import { createClient } from '@/lib/supabase/client'
 
 const INDIAN_STATES = [
-  'Andhra Pradesh',
-  'Assam',
-  'Bihar',
-  'Chhattisgarh',
-  'Goa',
-  'Gujarat',
-  'Haryana',
-  'Himachal Pradesh',
-  'Jharkhand',
-  'Karnataka',
-  'Kerala',
-  'Madhya Pradesh',
-  'Maharashtra',
-  'Manipur',
-  'Meghalaya',
-  'Mizoram',
-  'Nagaland',
-  'Odisha',
-  'Punjab',
-  'Rajasthan',
-  'Sikkim',
-  'Tamil Nadu',
-  'Telangana',
-  'Tripura',
-  'Uttar Pradesh',
-  'Uttarakhand',
-  'West Bengal',
+  'Andhra Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat',
+  'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala',
+  'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+  'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
+  'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
 ]
 
 type CheckoutStep = 'auth' | 'form'
+
+// Progress bar steps
+const STEPS = [
+  { id: 'address', label: 'Address', icon: MapPin },
+  { id: 'payment', label: 'Payment', icon: CreditCard },
+  { id: 'confirm', label: 'Confirm', icon: CheckCheck },
+]
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -77,6 +65,10 @@ export default function CheckoutPage() {
   const { data: savedAddresses } = useAddresses(user?.id)
   const createAddress = useCreateAddress()
   const idempotencyKey = useRef(crypto.randomUUID())
+
+  // Pincode auto-fill state
+  const [pincodeLoading, setPincodeLoading] = useState(false)
+  const [pincodeFilled, setPincodeFilled] = useState(false)
 
   // Skip auth step if already logged in
   useEffect(() => {
@@ -155,11 +147,57 @@ export default function CheckoutPage() {
   }, [profile, setValue])
 
   const paymentMode = watch('paymentMode')
-
+  const watchedPincode = watch('address.pincode')
 
   const { subtotal, shipping, gstAmount, savings } = calculateOrderTotals(items, gstEnabled, 0, deliveryConfig)
   const discount = appliedCoupon?.discount || 0
   const finalTotal = Math.max(0, subtotal + shipping + gstAmount - discount)
+
+  // Auto-switch COD to online when total >= 5000
+  useEffect(() => {
+    if (paymentMode === 'cod' && finalTotal >= 5000) {
+      setValue('paymentMode', 'online')
+      toast.info('Cash on Delivery is not available for orders above ₹5,000. Switched to online payment.')
+    }
+  }, [finalTotal, paymentMode, setValue])
+
+  // Pincode auto-fill via India Post API
+  const autoFillFromPincode = useCallback(async (pin: string) => {
+    if (pin.length !== 6 || !/^\d{6}$/.test(pin)) return
+    setPincodeLoading(true)
+    setPincodeFilled(false)
+    try {
+      const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`)
+      const data = await res.json()
+      if (data?.[0]?.Status === 'Success' && data[0].PostOffice?.length > 0) {
+        const po = data[0].PostOffice[0]
+        const city = po.Division || po.District || po.Name || ''
+        const state = po.State || ''
+        if (city) setValue('address.city', city)
+        if (state) {
+          // Match to our INDIAN_STATES list (case-insensitive)
+          const matched = INDIAN_STATES.find(
+            (s) => s.toLowerCase() === state.toLowerCase()
+          )
+          if (matched) setValue('address.state', matched)
+        }
+        if (city || state) setPincodeFilled(true)
+      }
+    } catch {
+      // silently fail — user can still type manually
+    } finally {
+      setPincodeLoading(false)
+    }
+  }, [setValue])
+
+  // Trigger auto-fill when pincode reaches 6 digits
+  useEffect(() => {
+    if (watchedPincode?.length === 6) {
+      autoFillFromPincode(watchedPincode)
+    } else {
+      setPincodeFilled(false)
+    }
+  }, [watchedPincode, autoFillFromPincode])
 
   const fillAddress = (addr: {
     name: string
@@ -203,7 +241,7 @@ export default function CheckoutPage() {
             is_default: savedAddresses?.length === 0,
           })
         } catch {
-          // Address save failed (e.g. table missing) — don't block order placement
+          // Address save failed — don't block order placement
         }
       }
 
@@ -239,7 +277,6 @@ export default function CheckoutPage() {
         return
       }
 
-      // Redirect user to PhonePe hosted checkout page
       window.location.href = data.phonePeRedirectUrl
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to place order')
@@ -257,59 +294,72 @@ export default function CheckoutPage() {
     )
   }
 
-  // Auth selection screen
+  // ─── Auth screen (guest-first) ────────────────────────────────────────────
   if (step === 'auth' && !user) {
     return (
-      <div className='px-4 py-6 max-w-2xl mx-auto min-h-[70vh] flex flex-col justify-center'>
+      <div className='px-4 py-8 max-w-lg mx-auto min-h-[70vh] flex flex-col justify-center'>
+        {/* Header */}
         <div className='text-center mb-8'>
-          <ShoppingBag className='h-12 w-12 text-[#f59e0b] mx-auto mb-4' />
-          <h1 className='text-2xl font-bold text-slate-900'>Checkout</h1>
-          <p className='text-slate-500 mt-2'>How would you like to proceed?</p>
+          <div className='w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4'>
+            <ShoppingBag className='h-7 w-7 text-[#f59e0b]' />
+          </div>
+          <h1 className='text-2xl font-bold text-slate-900'>Almost there!</h1>
+          <p className='text-slate-500 mt-1 text-sm'>How would you like to continue?</p>
         </div>
 
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-          <Card className='cursor-pointer hover:border-[#f59e0b] transition-colors' onClick={() => router.push('/login?redirect=/checkout')}>
-            <CardHeader className='text-center pb-2'>
-              <LogIn className='h-8 w-8 text-[#f59e0b] mx-auto mb-2' />
-              <CardTitle className='text-lg'>Sign In</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className='text-sm text-slate-500 text-center'>Already have an account? Sign in for faster checkout and order tracking.</p>
-              <Button className='w-full mt-4 bg-[#f59e0b] hover:bg-[#d97706] text-slate-900 font-semibold'>
-                Sign In
-              </Button>
-            </CardContent>
-          </Card>
+        {/* Primary CTA — Guest */}
+        <button
+          onClick={() => setStep('form')}
+          className='w-full flex items-center justify-between bg-[#f59e0b] hover:bg-[#d97706] text-slate-900 font-semibold rounded-xl px-5 py-4 transition-colors mb-3 group'
+        >
+          <div className='flex items-center gap-3'>
+            <Zap className='h-5 w-5' />
+            <div className='text-left'>
+              <p className='font-semibold text-sm'>Continue as Guest</p>
+              <p className='text-xs font-normal opacity-75'>Quick checkout — no account needed</p>
+            </div>
+          </div>
+          <ChevronRight className='h-5 w-5 opacity-70 group-hover:translate-x-0.5 transition-transform' />
+        </button>
 
-          <Card className='cursor-pointer hover:border-[#f59e0b] transition-colors' onClick={() => router.push('/login?redirect=/checkout')}>
-            <CardHeader className='text-center pb-2'>
-              <UserPlus className='h-8 w-8 text-emerald-600 mx-auto mb-2' />
-              <CardTitle className='text-lg'>Sign Up</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className='text-sm text-slate-500 text-center'>Create an account with your email to save addresses and track orders.</p>
-              <Button className='w-full mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold'>
-                Create Account
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className='cursor-pointer hover:border-[#f59e0b] transition-colors' onClick={() => setStep('form')}>
-            <CardHeader className='text-center pb-2'>
-              <User className='h-8 w-8 text-slate-600 mx-auto mb-2' />
-              <CardTitle className='text-lg'>Guest Checkout</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className='text-sm text-slate-500 text-center'>Checkout without an account. You can create one later to track your order.</p>
-              <Button variant='outline' className='w-full mt-4 font-semibold'>
-                Continue as Guest
-              </Button>
-            </CardContent>
-          </Card>
+        {/* Divider */}
+        <div className='relative flex items-center my-4'>
+          <div className='flex-1 border-t border-slate-200' />
+          <span className='px-3 text-xs text-slate-400'>or sign in for faster checkout</span>
+          <div className='flex-1 border-t border-slate-200' />
         </div>
 
-        <div className='mt-8 text-center'>
-          <Link href='/cart' className='text-sm text-slate-500 hover:text-slate-800'>
+        {/* Secondary — Sign In */}
+        <button
+          onClick={() => router.push('/login?redirect=/checkout')}
+          className='w-full flex items-center justify-between bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-medium rounded-xl px-5 py-4 transition-colors group'
+        >
+          <div className='flex items-center gap-3'>
+            <LogIn className='h-5 w-5 text-slate-400' />
+            <div className='text-left'>
+              <p className='font-medium text-sm'>Sign In / Sign Up</p>
+              <p className='text-xs font-normal text-slate-400'>Save addresses, track orders</p>
+            </div>
+          </div>
+          <ChevronRight className='h-4 w-4 text-slate-300 group-hover:translate-x-0.5 transition-transform' />
+        </button>
+
+        {/* Trust badges */}
+        <div className='mt-8 grid grid-cols-3 gap-3 text-center'>
+          {[
+            { icon: Shield, text: 'Secure Checkout' },
+            { icon: Package, text: 'Easy Returns' },
+            { icon: CheckCircle, text: 'Trusted Store' },
+          ].map(({ icon: Icon, text }) => (
+            <div key={text} className='flex flex-col items-center gap-1.5 text-slate-400'>
+              <Icon className='h-5 w-5' />
+              <span className='text-[11px] leading-tight'>{text}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className='mt-6 text-center'>
+          <Link href='/cart' className='text-sm text-slate-400 hover:text-slate-700'>
             ← Back to cart
           </Link>
         </div>
@@ -317,10 +367,36 @@ export default function CheckoutPage() {
     )
   }
 
-  // Checkout form
+  // ─── Checkout form ────────────────────────────────────────────────────────
   return (
     <>
     <div className='px-4 py-6 max-w-5xl mx-auto'>
+
+      {/* Progress steps */}
+      <div className='flex items-center justify-center gap-0 mb-8'>
+        {STEPS.map((s, i) => {
+          const Icon = s.icon
+          const isLast = i === STEPS.length - 1
+          return (
+            <div key={s.id} className='flex items-center'>
+              <div className='flex flex-col items-center gap-1'>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                  i === 0 ? 'bg-[#f59e0b] text-slate-900' : 'bg-slate-100 text-slate-400'
+                }`}>
+                  <Icon className='h-4 w-4' />
+                </div>
+                <span className={`text-[10px] font-medium ${i === 0 ? 'text-[#f59e0b]' : 'text-slate-400'}`}>
+                  {s.label}
+                </span>
+              </div>
+              {!isLast && (
+                <div className='w-16 md:w-24 h-px bg-slate-200 mx-1 mb-4' />
+              )}
+            </div>
+          )
+        })}
+      </div>
+
       <div className='flex items-center justify-between mb-6'>
         <h1 className='text-2xl font-bold text-slate-900'>Checkout</h1>
         {!user && (
@@ -340,11 +416,12 @@ export default function CheckoutPage() {
       )}
 
       <form id='checkout-form' onSubmit={handleSubmit(onSubmit)} className='grid grid-cols-1 lg:grid-cols-2 gap-8 pb-24 md:pb-0'>
+        {/* ── Left column: Address + Payment ── */}
         <div className='space-y-6'>
           {/* Saved Addresses */}
           {user && savedAddresses && savedAddresses.length > 0 && (
             <div className='bg-white border border-slate-100 rounded-xl p-4 space-y-3'>
-              <h2 className='font-semibold text-slate-900'>Select Saved Address</h2>
+              <h2 className='font-semibold text-slate-900'>Saved Addresses</h2>
               <div className='grid gap-2'>
                 {savedAddresses.map((addr) => (
                   <button
@@ -407,7 +484,7 @@ export default function CheckoutPage() {
             </div>
           )}
 
-          {/* Show form if no saved addresses, or if "Add New" is selected, or for guests */}
+          {/* Address Form */}
           {(!user || !savedAddresses?.length || showAddressForm || !selectedAddressId) && (
           <div className='bg-white border border-slate-100 rounded-xl p-4 space-y-4'>
             <h2 className='font-semibold text-slate-900'>
@@ -416,31 +493,63 @@ export default function CheckoutPage() {
             <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
               <div className='space-y-2'>
                 <Label>Full Name *</Label>
-                <Input {...register('address.name')} />
+                <Input {...register('address.name')} placeholder='Rahul Sharma' />
                 {errors.address?.name && <p className='text-xs text-red-500'>{errors.address.name.message}</p>}
               </div>
               <div className='space-y-2'>
                 <Label>Mobile *</Label>
-                <Input {...register('address.phone')} placeholder='9876543210' />
+                <Input {...register('address.phone')} placeholder='9876543210' inputMode='tel' />
                 {errors.address?.phone && <p className='text-xs text-red-500'>{errors.address.phone.message}</p>}
               </div>
               <div className='space-y-2 md:col-span-2'>
                 <Label>Email *</Label>
-                <Input {...register('address.email')} />
+                <Input {...register('address.email')} type='email' placeholder='you@example.com' />
                 {errors.address?.email && <p className='text-xs text-red-500'>{errors.address.email.message}</p>}
               </div>
               <div className='space-y-2 md:col-span-2'>
                 <Label>Address Line 1 *</Label>
-                <Input {...register('address.line1')} />
+                <Input {...register('address.line1')} placeholder='House No., Street, Area' />
                 {errors.address?.line1 && <p className='text-xs text-red-500'>{errors.address.line1.message}</p>}
               </div>
               <div className='space-y-2 md:col-span-2'>
                 <Label>Address Line 2</Label>
-                <Input {...register('address.line2')} />
+                <Input {...register('address.line2')} placeholder='Apartment, colony, etc. (optional)' />
               </div>
+
+              {/* PIN Code with auto-fill */}
+              <div className='space-y-2'>
+                <Label>PIN Code *</Label>
+                <div className='relative'>
+                  <Input
+                    {...register('address.pincode')}
+                    placeholder='380009'
+                    inputMode='numeric'
+                    maxLength={6}
+                    className={pincodeFilled ? 'border-emerald-400 pr-8' : ''}
+                  />
+                  {pincodeLoading && (
+                    <Loader2 className='absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-slate-400' />
+                  )}
+                  {pincodeFilled && !pincodeLoading && (
+                    <CheckCircle className='absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500' />
+                  )}
+                </div>
+                {pincodeFilled && (
+                  <p className='text-xs text-emerald-600 flex items-center gap-1'>
+                    <CheckCircle className='h-3 w-3' /> City &amp; State auto-filled
+                  </p>
+                )}
+                {errors.address?.pincode && <p className='text-xs text-red-500'>{errors.address.pincode.message}</p>}
+              </div>
+
+              <div className='space-y-2'>
+                <Label>Landmark</Label>
+                <Input {...register('address.landmark')} placeholder='Near school, temple, etc.' />
+              </div>
+
               <div className='space-y-2'>
                 <Label>City *</Label>
-                <Input {...register('address.city')} />
+                <Input {...register('address.city')} placeholder='Mumbai' />
                 {errors.address?.city && <p className='text-xs text-red-500'>{errors.address.city.message}</p>}
               </div>
               <div className='space-y-2'>
@@ -457,15 +566,6 @@ export default function CheckoutPage() {
                 </Select>
                 {errors.address?.state && <p className='text-xs text-red-500'>{errors.address.state.message}</p>}
               </div>
-              <div className='space-y-2'>
-                <Label>PIN Code *</Label>
-                <Input {...register('address.pincode')} placeholder='380009' />
-                {errors.address?.pincode && <p className='text-xs text-red-500'>{errors.address.pincode.message}</p>}
-              </div>
-              <div className='space-y-2'>
-                <Label>Landmark</Label>
-                <Input {...register('address.landmark')} />
-              </div>
             </div>
             {user && (
               <div className='flex items-center gap-2'>
@@ -479,25 +579,32 @@ export default function CheckoutPage() {
           </div>
           )}
 
+          {/* Payment Method */}
           <div className='bg-white border border-slate-100 rounded-xl p-4 space-y-4'>
             <h2 className='font-semibold text-slate-900'>Payment Method</h2>
             <div className='space-y-2'>
               {codEnabled && (
-              <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer ${paymentMode === 'cod' ? 'border-[#f59e0b] bg-amber-50' : 'border-slate-200'}`}>
+              <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                paymentMode === 'cod' ? 'border-[#f59e0b] bg-amber-50' : 'border-slate-200 hover:border-slate-300'
+              }`}>
                 <input type='radio' value='cod' {...register('paymentMode')} className='hidden' />
-                <Banknote className='h-5 w-5 text-emerald-600' />
+                <Banknote className='h-5 w-5 text-emerald-600 shrink-0' />
                 <div className='flex-1'>
                   <p className='font-medium text-sm'>Cash on Delivery</p>
-                  <p className='text-xs text-slate-500'>Pay when you receive</p>
+                  <p className='text-xs text-slate-500'>Pay when you receive your order</p>
                 </div>
                 {finalTotal >= 5000 && (
-                  <p className='text-xs text-red-500'>Not available for orders above Rs.5000</p>
+                  <span className='text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap'>
+                    Not available
+                  </span>
                 )}
               </label>
               )}
-              <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer ${paymentMode === 'online' ? 'border-[#5e35b1] bg-purple-50' : 'border-slate-200'}`}>
+              <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                paymentMode === 'online' ? 'border-[#5e35b1] bg-purple-50' : 'border-slate-200 hover:border-slate-300'
+              }`}>
                 <input type='radio' value='online' {...register('paymentMode')} className='hidden' />
-                <CreditCard className='h-5 w-5 text-[#5e35b1]' />
+                <CreditCard className='h-5 w-5 text-[#5e35b1] shrink-0' />
                 <div className='flex-1'>
                   <p className='font-medium text-sm'>Pay Online via PhonePe</p>
                   <p className='text-xs text-slate-500'>UPI, Cards, Net Banking &amp; more — secured by PhonePe</p>
@@ -513,6 +620,7 @@ export default function CheckoutPage() {
           </div>
         </div>
 
+        {/* ── Right column: Order Summary ── */}
         <div className='space-y-4'>
           <div className='bg-slate-50 rounded-xl p-4 space-y-4'>
             <h2 className='font-semibold text-slate-900'>Order Summary</h2>
@@ -527,7 +635,7 @@ export default function CheckoutPage() {
                       {appliedCoupon.code} applied
                     </span>
                   </div>
-                  <span className='text-sm text-emerald-700'>-Rs.{discount.toFixed(2)}</span>
+                  <span className='text-sm text-emerald-700'>-₹{discount.toFixed(2)}</span>
                 </div>
               ) : (
                 <div className='flex gap-2'>
@@ -557,7 +665,7 @@ export default function CheckoutPage() {
                           disc = shipping
                         }
                         setAppliedCoupon({ code: coupon.code, type: coupon.type, value: coupon.value, discount: disc })
-                        toast.success(`${coupon.code} applied — You saved Rs.${disc.toFixed(2)}!`)
+                        toast.success(`${coupon.code} applied — You saved ₹${disc.toFixed(2)}!`)
                         setCouponCode('')
                       } catch {
                         // error toast handled by mutation
@@ -571,6 +679,7 @@ export default function CheckoutPage() {
               )}
             </div>
 
+            {/* Items */}
             <div className='space-y-3'>
               {items.map((item) => (
                 <div key={item.productId} className='flex gap-3'>
@@ -581,64 +690,97 @@ export default function CheckoutPage() {
                     <p className='text-sm font-medium truncate'>{item.name}</p>
                     <p className='text-xs text-slate-500'>Qty: {item.quantity}</p>
                   </div>
-                  <p className='text-sm font-semibold'>Rs.{item.price * item.quantity}</p>
+                  <p className='text-sm font-semibold'>₹{item.price * item.quantity}</p>
                 </div>
               ))}
             </div>
+
+            {/* Totals */}
             <div className='space-y-2 text-sm'>
               <div className='flex justify-between text-slate-600'>
                 <span>Subtotal</span>
-                <span>Rs.{subtotal.toFixed(2)}</span>
+                <span>₹{subtotal.toFixed(2)}</span>
               </div>
               {savings > 0 && (
                 <div className='flex justify-between text-emerald-600'>
                   <span>You Save</span>
-                  <span>-Rs.{savings.toFixed(2)}</span>
+                  <span>-₹{savings.toFixed(2)}</span>
                 </div>
               )}
               <div className='flex justify-between text-slate-600'>
                 <span>Shipping</span>
-                <span>{shipping === 0 ? 'Free' : `Rs.${shipping.toFixed(2)}`}</span>
+                <span>{shipping === 0 ? <span className='text-emerald-600'>Free</span> : `₹${shipping.toFixed(2)}`}</span>
               </div>
               {discount > 0 && (
                 <div className='flex justify-between text-emerald-600'>
                   <span>Coupon Discount</span>
-                  <span>-Rs.{discount.toFixed(2)}</span>
+                  <span>-₹{discount.toFixed(2)}</span>
                 </div>
               )}
-              <div className='flex justify-between font-bold text-slate-900 pt-2 border-t border-slate-200'>
+              <div className='flex justify-between font-bold text-slate-900 pt-2 border-t border-slate-200 text-base'>
                 <span>Total</span>
-                <span>Rs.{finalTotal.toFixed(2)}</span>
+                <span>₹{finalTotal.toFixed(2)}</span>
               </div>
             </div>
-            
-            <div className='pt-2'>
+
+            {/* ── Terms checkbox — directly above Place Order ── */}
+            <div className='pt-2 border-t border-slate-100'>
               <label className='flex items-start gap-2 cursor-pointer'>
                 <Checkbox
                   checked={watch('acceptTerms') === true}
                   onCheckedChange={(v) => setValue('acceptTerms', v === true, { shouldValidate: true })}
-                  className='mt-1'
+                  className='mt-0.5'
                 />
                 <span className='text-xs text-slate-600 leading-relaxed'>
                   I agree to the{' '}
-                  <Link href='/legal/terms' target='_blank' className='text-[#f59e0b] hover:underline'>Terms & Conditions</Link>,{' '}
+                  <Link href='/legal/terms' target='_blank' className='text-[#f59e0b] hover:underline'>Terms &amp; Conditions</Link>,{' '}
                   <Link href='/legal/privacy' target='_blank' className='text-[#f59e0b] hover:underline'>Privacy Policy</Link>, and{' '}
                   <Link href='/legal/refund' target='_blank' className='text-[#f59e0b] hover:underline'>Refund Policy</Link>.
                 </span>
               </label>
-              {errors.acceptTerms && <p className='text-xs text-red-500 mt-1'>{errors.acceptTerms.message}</p>}
+              {errors.acceptTerms && (
+                <p className='text-xs text-red-500 mt-1 flex items-center gap-1'>
+                  <Info className='h-3 w-3' /> {errors.acceptTerms.message}
+                </p>
+              )}
             </div>
 
             <Button
               type='submit'
-              className='w-full bg-[#f59e0b] hover:bg-[#d97706] text-slate-900 font-semibold h-12'
+              className='w-full bg-[#f59e0b] hover:bg-[#d97706] text-slate-900 font-semibold h-12 text-base'
               disabled={placing || (paymentMode === 'cod' && finalTotal >= 5000)}
             >
-              {placing ? 'Placing Order...' : 'Place Order'}
+              {placing ? (
+                <><Loader2 className='h-4 w-4 mr-2 animate-spin' />Placing Order...</>
+              ) : (
+                'Place Order →'
+              )}
             </Button>
-            <p className="text-xs text-muted-foreground text-center mt-3">
-              By proceeding, you agree to our <Link href="/legal/refund" className="underline hover:text-slate-900">Cancellation & Refund Policy</Link>
+
+            {paymentMode === 'cod' && finalTotal >= 5000 && (
+              <p className='text-xs text-orange-600 text-center flex items-center justify-center gap-1'>
+                <Info className='h-3.5 w-3.5' />
+                COD not available above ₹5,000 — please select online payment
+              </p>
+            )}
+
+            <p className='text-xs text-muted-foreground text-center'>
+              By proceeding, you agree to our{' '}
+              <Link href='/legal/refund' className='underline hover:text-slate-900'>Cancellation &amp; Refund Policy</Link>
             </p>
+
+            {/* Trust row */}
+            <div className='flex items-center justify-center gap-4 pt-1 border-t border-slate-100'>
+              {[
+                { icon: Shield, text: '100% Secure' },
+                { icon: Package, text: 'Easy Returns' },
+              ].map(({ icon: Icon, text }) => (
+                <div key={text} className='flex items-center gap-1 text-slate-400'>
+                  <Icon className='h-3.5 w-3.5' />
+                  <span className='text-[11px]'>{text}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </form>
@@ -649,9 +791,9 @@ export default function CheckoutPage() {
       <div className='flex items-center justify-between max-w-5xl mx-auto gap-4'>
         <div>
           <p className='text-xs text-slate-500'>Total</p>
-          <p className='text-lg font-bold text-slate-900'>Rs.{finalTotal.toFixed(2)}</p>
+          <p className='text-lg font-bold text-slate-900'>₹{finalTotal.toFixed(2)}</p>
         </div>
-        <div className="flex flex-col items-end">
+        <div className='flex flex-col items-end'>
           <Button
             type='submit'
             form='checkout-form'
@@ -659,10 +801,10 @@ export default function CheckoutPage() {
             disabled={placing || (paymentMode === 'cod' && finalTotal >= 5000)}
             onClick={handleSubmit(onSubmit)}
           >
-            {placing ? 'Placing...' : 'Place Order'}
+            {placing ? 'Placing...' : 'Place Order →'}
           </Button>
-          <p className="text-[10px] text-muted-foreground text-right w-full">
-            By proceeding, you agree to our <Link href="/legal/refund" className="underline">Refund Policy</Link>
+          <p className='text-[10px] text-muted-foreground text-right w-full'>
+            By proceeding, you agree to our <Link href='/legal/refund' className='underline'>Refund Policy</Link>
           </p>
         </div>
       </div>

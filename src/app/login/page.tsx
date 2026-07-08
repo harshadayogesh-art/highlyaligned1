@@ -69,11 +69,16 @@ function LoginForm() {
         }
       }
     } else {
+      // Build the post-confirmation redirect URL so the user lands back at checkout (or wherever they came from)
+      const origin = typeof window !== 'undefined' ? window.location.origin : ''
+      const emailRedirectTo = `${origin}${redirectTo}`
+
       const { data: signUpData, error } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
         options: {
           data: { name: values.email.split('@')[0] },
+          emailRedirectTo,
         },
       })
       if (error) {
@@ -91,10 +96,16 @@ function LoginForm() {
             role: 'customer',
           })
         }
-        toast.success('Account created. Please check your email.')
-        // Auto-login after signup if session is available (email confirm may be required depending on Supabase settings)
-        if (signUpData.session) {
+        if (signUpData?.session) {
+          // Email confirmation is disabled — session available immediately
+          toast.success('Account created! Taking you back...')
           router.push(redirectTo)
+        } else {
+          // Email confirmation required — show clear message
+          toast.success(
+            `Account created! Check your inbox to confirm your email — you'll be taken to ${redirectTo === '/checkout' ? 'checkout' : 'your account'} automatically.`,
+            { duration: 8000 }
+          )
         }
       }
     }
