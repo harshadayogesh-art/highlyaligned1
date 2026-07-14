@@ -4,10 +4,9 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { format, formatDistanceToNow } from 'date-fns'
 import {
-  MessageCircle, Search, Filter, Send, Bot, User, Phone,
-  CheckCheck, Check, Clock, X, Star, Calendar, Tag,
-  ChevronRight, MoreVertical, UserCheck, Zap, RefreshCw,
-  AlertCircle, WifiOff
+  MessageCircle, Search, Send, Bot, User, Phone,
+  CheckCheck, Check, Star, Calendar,
+  RefreshCw, AlertCircle, Plus, X
 } from 'lucide-react'
 import type { WhatsAppConversation, WhatsAppMessage, WhatsAppContact } from '@/types/whatsapp'
 
@@ -37,6 +36,13 @@ export default function WhatsAppInboxPage() {
   const [filter, setFilter] = useState<'all' | 'open' | 'qualified' | 'booked'>('all')
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
+  // New conversation modal
+  const [newConvoOpen, setNewConvoOpen] = useState(false)
+  const [newPhone, setNewPhone] = useState('')
+  const [newName, setNewName] = useState('')
+  const [newMsg, setNewMsg] = useState('Hi! Thanks for your interest in Selfaligned 🙏 How can we help you today?')
+  const [initiating, setInitiating] = useState(false)
+  const [initiateError, setInitiateError] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Fetch conversations
@@ -128,6 +134,32 @@ export default function WhatsAppInboxPage() {
     }
   }
 
+  // Initiate new conversation
+  const handleInitiate = async () => {
+    if (!newPhone.trim() || !newMsg.trim()) return
+    setInitiating(true)
+    setInitiateError('')
+    try {
+      const res = await fetch('/api/whatsapp/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: newPhone.trim(), name: newName.trim(), message: newMsg.trim() }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setNewConvoOpen(false)
+        setNewPhone('')
+        setNewName('')
+        setNewMsg('Hi! Thanks for your interest in Selfaligned 🙏 How can we help you today?')
+        await fetchConversations()
+      } else {
+        setInitiateError(data.error || 'Failed to send')
+      }
+    } finally {
+      setInitiating(false)
+    }
+  }
+
   // Switch mode
   const switchMode = async (convId: string, mode: 'bot' | 'human') => {
     await supabase.from('whatsapp_conversations').update({ mode }).eq('id', convId)
@@ -168,6 +200,72 @@ export default function WhatsAppInboxPage() {
 
   return (
     <div className="flex h-[calc(100vh-112px)] bg-background rounded-xl border border-border overflow-hidden">
+      {/* ===== NEW CONVERSATION MODAL ===== */}
+      {newConvoOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl shadow-2xl border border-border w-full max-w-md p-6 mx-4">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold text-foreground">Send New WhatsApp Message</h3>
+              <button onClick={() => { setNewConvoOpen(false); setInitiateError('') }} className="p-1.5 rounded-lg hover:bg-muted">
+                <X className="h-5 w-5 text-muted-foreground" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Phone Number *</label>
+                <input
+                  type="tel"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  placeholder="+91 98765 43210"
+                  className="w-full text-sm border border-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 bg-background"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Include country code e.g. +91 for India</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Contact Name (optional)</label>
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Customer name"
+                  className="w-full text-sm border border-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 bg-background"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1 block">Message *</label>
+                <textarea
+                  value={newMsg}
+                  onChange={(e) => setNewMsg(e.target.value)}
+                  rows={4}
+                  className="w-full text-sm border border-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 bg-background resize-none"
+                />
+              </div>
+              {initiateError && (
+                <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                  ⚠️ {initiateError}
+                </div>
+              )}
+              <div className="flex gap-3 pt-1">
+                <button
+                  onClick={() => { setNewConvoOpen(false); setInitiateError('') }}
+                  className="flex-1 py-2.5 text-sm text-muted-foreground hover:bg-muted rounded-xl border border-border"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleInitiate}
+                  disabled={!newPhone.trim() || !newMsg.trim() || initiating}
+                  className="flex-1 py-2.5 text-sm bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {initiating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  {initiating ? 'Sending...' : 'Send Message'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* ===== LEFT SIDEBAR ===== */}
       <div className="w-[340px] flex flex-col border-r border-border bg-muted/10">
         {/* Header */}
@@ -184,13 +282,22 @@ export default function WhatsAppInboxPage() {
                 )}
               </div>
             </div>
-            <button
-              onClick={fetchConversations}
-              className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
-              title="Refresh"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setNewConvoOpen(true)}
+                className="p-1.5 rounded-lg hover:bg-emerald-50 text-emerald-600"
+                title="Send new message"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+              <button
+                onClick={fetchConversations}
+                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
+                title="Refresh"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           {/* Search */}
