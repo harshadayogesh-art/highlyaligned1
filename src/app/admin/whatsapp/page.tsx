@@ -4,26 +4,38 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { format, formatDistanceToNow } from 'date-fns'
 import {
-  MessageCircle, Search, Send, Bot, User, Phone,
-  CheckCheck, Check, Star, Calendar,
-  RefreshCw, AlertCircle, Plus, X
+  Send, Bot, User, Phone, CheckCheck, Check,
+  RefreshCw, Plus, X, Search, Star, Calendar,
+  MoreVertical, ChevronDown, Zap
 } from 'lucide-react'
 import type { WhatsAppConversation, WhatsAppMessage, WhatsAppContact } from '@/types/whatsapp'
 
 type ConvoWithContact = WhatsAppConversation & { contact: WhatsAppContact; messages: WhatsAppMessage[] }
 
-const statusColors: Record<string, string> = {
-  open: 'bg-blue-100 text-blue-700',
-  qualified: 'bg-emerald-100 text-emerald-700',
-  unqualified: 'bg-slate-100 text-slate-600',
-  booked: 'bg-purple-100 text-purple-700',
-  closed: 'bg-gray-100 text-gray-500',
+const STATUS_COLOR: Record<string, string> = {
+  open:        'text-blue-500',
+  qualified:   'text-emerald-500',
+  unqualified: 'text-slate-400',
+  booked:      'text-violet-500',
+  closed:      'text-gray-400',
 }
 
-const modeIcons: Record<string, React.ReactNode> = {
-  bot: <Bot className="h-3 w-3" />,
-  human: <User className="h-3 w-3" />,
-  closed: <X className="h-3 w-3" />,
+const STATUS_DOT: Record<string, string> = {
+  open:        'bg-blue-400',
+  qualified:   'bg-emerald-400',
+  unqualified: 'bg-slate-300',
+  booked:      'bg-violet-400',
+  closed:      'bg-gray-300',
+}
+
+function Avatar({ name, phone, size = 'md' }: { name?: string | null; phone?: string; size?: 'sm' | 'md' | 'lg' }) {
+  const letter = (name || phone || '?')[0].toUpperCase()
+  const sz = size === 'sm' ? 'h-8 w-8 text-xs' : size === 'lg' ? 'h-12 w-12 text-lg' : 'h-10 w-10 text-sm'
+  return (
+    <div className={`${sz} rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white font-bold shrink-0`}>
+      {letter}
+    </div>
+  )
 }
 
 export default function WhatsAppInboxPage() {
@@ -31,114 +43,69 @@ export default function WhatsAppInboxPage() {
   const [conversations, setConversations] = useState<ConvoWithContact[]>([])
   const [selected, setSelected] = useState<ConvoWithContact | null>(null)
   const [messages, setMessages] = useState<WhatsAppMessage[]>([])
-  const [newMessage, setNewMessage] = useState('')
+  const [draft, setDraft] = useState('')
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState<'all' | 'open' | 'qualified' | 'booked'>('all')
+  const [filter, setFilter] = useState<'all' | 'bot' | 'human'>('all')
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
-  // New conversation modal
-  const [newConvoOpen, setNewConvoOpen] = useState(false)
+  const [newOpen, setNewOpen] = useState(false)
   const [newPhone, setNewPhone] = useState('')
   const [newName, setNewName] = useState('')
   const [newMsg, setNewMsg] = useState('Hi! Thanks for your interest in Selfaligned 🙏 How can we help you today?')
   const [initiating, setInitiating] = useState(false)
   const [initiateError, setInitiateError] = useState('')
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
 
-  // Fetch conversations
   const fetchConversations = useCallback(async () => {
-    let query = supabase
+    const { data } = await supabase
       .from('whatsapp_conversations')
-      .select(`
-        *,
-        contact:whatsapp_contacts(*),
-        messages:whatsapp_messages(*)
-      `)
+      .select('*, contact:whatsapp_contacts(*), messages:whatsapp_messages(*)')
       .order('last_message_at', { ascending: false })
       .limit(100)
-
-    if (filter !== 'all') {
-      query = query.eq('status', filter)
-    }
-
-    const { data } = await query
     if (data) setConversations(data as ConvoWithContact[])
     setLoading(false)
-  }, [filter])
+  }, [])
 
-  useEffect(() => {
-    fetchConversations()
-  }, [fetchConversations])
+  useEffect(() => { fetchConversations() }, [fetchConversations])
 
-  // Realtime subscription for new messages
+  // Realtime
   useEffect(() => {
-    const channel = supabase
-      .channel('whatsapp-realtime')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'whatsapp_messages',
-      }, () => {
+    const ch = supabase.channel('wa-inbox')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_messages' }, () => {
         fetchConversations()
         if (selected) fetchMessages(selected.id)
       })
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'whatsapp_conversations',
-      }, () => {
-        fetchConversations()
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'whatsapp_conversations' }, fetchConversations)
       .subscribe()
-
-    return () => { supabase.removeChannel(channel) }
+    return () => { supabase.removeChannel(ch) }
   }, [selected])
 
-  // Fetch messages for selected conversation
-  const fetchMessages = async (convId: string) => {
+  const fetchMessages = async (id: string) => {
     const { data } = await supabase
-      .from('whatsapp_messages')
-      .select('*')
-      .eq('conversation_id', convId)
-      .order('created_at', { ascending: true })
-
+      .from('whatsapp_messages').select('*')
+      .eq('conversation_id', id).order('created_at', { ascending: true })
     if (data) setMessages(data)
   }
 
-  useEffect(() => {
-    if (selected) fetchMessages(selected.id)
-  }, [selected])
+  useEffect(() => { if (selected) fetchMessages(selected.id) }, [selected])
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-
-  // Send message
   const handleSend = async () => {
-    if (!newMessage.trim() || !selected || sending) return
+    if (!draft.trim() || !selected || sending) return
     setSending(true)
     try {
       const res = await fetch('/api/whatsapp/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationId: selected.id, message: newMessage.trim() }),
+        body: JSON.stringify({ conversationId: selected.id, message: draft.trim() }),
       })
-      if (res.ok) {
-        setNewMessage('')
-        await fetchMessages(selected.id)
-        await fetchConversations()
-      }
-    } finally {
-      setSending(false)
-    }
+      if (res.ok) { setDraft(''); fetchMessages(selected.id); fetchConversations() }
+    } finally { setSending(false) }
   }
 
-  // Initiate new conversation
   const handleInitiate = async () => {
     if (!newPhone.trim() || !newMsg.trim()) return
-    setInitiating(true)
-    setInitiateError('')
+    setInitiating(true); setInitiateError('')
     try {
       const res = await fetch('/api/whatsapp/initiate', {
         method: 'POST',
@@ -147,418 +114,333 @@ export default function WhatsAppInboxPage() {
       })
       const data = await res.json()
       if (res.ok) {
-        setNewConvoOpen(false)
-        setNewPhone('')
-        setNewName('')
+        setNewOpen(false); setNewPhone(''); setNewName('')
         setNewMsg('Hi! Thanks for your interest in Selfaligned 🙏 How can we help you today?')
-        await fetchConversations()
-      } else {
-        setInitiateError(data.error || 'Failed to send')
-      }
-    } finally {
-      setInitiating(false)
-    }
+        fetchConversations()
+      } else { setInitiateError(data.error || 'Failed') }
+    } finally { setInitiating(false) }
   }
 
-  // Switch mode
-  const switchMode = async (convId: string, mode: 'bot' | 'human') => {
-    await supabase.from('whatsapp_conversations').update({ mode }).eq('id', convId)
-    await fetchConversations()
-    if (selected?.id === convId) {
-      setSelected((prev) => prev ? { ...prev, mode } : null)
-    }
+  const switchMode = async (id: string, mode: 'bot' | 'human') => {
+    await supabase.from('whatsapp_conversations').update({ mode }).eq('id', id)
+    fetchConversations()
+    setSelected(prev => prev?.id === id ? { ...prev, mode } : prev)
   }
 
-  // Confirm appointment
-  const confirmAppointment = async (contactId: string) => {
-    await supabase
-      .from('whatsapp_appointments')
+  const confirmAppt = async (contactId: string) => {
+    await supabase.from('whatsapp_appointments')
       .update({ status: 'confirmed', confirmed_at: new Date().toISOString() })
-      .eq('contact_id', contactId)
-      .eq('status', 'pending')
-    await supabase
-      .from('whatsapp_followup_queue')
-      .update({ status: 'cancelled' })
-      .eq('contact_id', contactId)
-      .eq('status', 'pending')
-    await fetchConversations()
+      .eq('contact_id', contactId).eq('status', 'pending')
+    await supabase.from('whatsapp_followup_queue')
+      .update({ status: 'cancelled' }).eq('contact_id', contactId).eq('status', 'pending')
+    fetchConversations()
   }
 
-  const filtered = conversations.filter((c) => {
-    const name = c.contact?.name || ''
-    const phone = c.contact?.phone || ''
-    return name.toLowerCase().includes(search.toLowerCase()) ||
-      phone.includes(search)
-  })
-
-  const lastMessage = (c: ConvoWithContact) => {
+  const lastMsg = (c: ConvoWithContact) => {
     const msgs = c.messages || []
     return msgs[msgs.length - 1]
   }
 
-  const unreadCount = conversations.filter(c => c.mode === 'bot' && c.status === 'open').length
+  const filtered = conversations.filter(c => {
+    if (filter === 'bot' && c.mode !== 'bot') return false
+    if (filter === 'human' && c.mode !== 'human') return false
+    const q = search.toLowerCase()
+    return !q || (c.contact?.name || '').toLowerCase().includes(q) || (c.contact?.phone || '').includes(q)
+  })
+
+  const unread = conversations.filter(c => c.mode === 'bot' && c.status === 'open').length
 
   return (
-    <div className="flex h-[calc(100vh-112px)] bg-background rounded-xl border border-border overflow-hidden">
-      {/* ===== NEW CONVERSATION MODAL ===== */}
-      {newConvoOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-background rounded-2xl shadow-2xl border border-border w-full max-w-md p-6 mx-4">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-bold text-foreground">Send New WhatsApp Message</h3>
-              <button onClick={() => { setNewConvoOpen(false); setInitiateError('') }} className="p-1.5 rounded-lg hover:bg-muted">
-                <X className="h-5 w-5 text-muted-foreground" />
+    <>
+      {/* New message modal */}
+      {newOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl shadow-2xl border border-border w-full max-w-md">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <h3 className="font-semibold text-foreground">New Message</h3>
+              <button onClick={() => { setNewOpen(false); setInitiateError('') }} className="p-1.5 rounded-lg hover:bg-muted">
+                <X className="h-4 w-4 text-muted-foreground" />
               </button>
             </div>
-            <div className="space-y-4">
+            <div className="px-5 py-4 space-y-3">
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Phone Number *</label>
-                <input
-                  type="tel"
-                  value={newPhone}
-                  onChange={(e) => setNewPhone(e.target.value)}
+                <label className="text-xs font-medium text-muted-foreground">Phone *</label>
+                <input type="tel" value={newPhone} onChange={e => setNewPhone(e.target.value)}
                   placeholder="+91 98765 43210"
-                  className="w-full text-sm border border-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 bg-background"
-                />
-                <p className="text-xs text-muted-foreground mt-1">Include country code e.g. +91 for India</p>
+                  className="mt-1 w-full text-sm border border-border rounded-xl px-3 py-2.5 bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Contact Name (optional)</label>
-                <input
-                  type="text"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
+                <label className="text-xs font-medium text-muted-foreground">Name (optional)</label>
+                <input type="text" value={newName} onChange={e => setNewName(e.target.value)}
                   placeholder="Customer name"
-                  className="w-full text-sm border border-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 bg-background"
-                />
+                  className="mt-1 w-full text-sm border border-border rounded-xl px-3 py-2.5 bg-background focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Message *</label>
-                <textarea
-                  value={newMsg}
-                  onChange={(e) => setNewMsg(e.target.value)}
-                  rows={4}
-                  className="w-full text-sm border border-border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 bg-background resize-none"
-                />
+                <label className="text-xs font-medium text-muted-foreground">Message *</label>
+                <textarea value={newMsg} onChange={e => setNewMsg(e.target.value)} rows={3}
+                  className="mt-1 w-full text-sm border border-border rounded-xl px-3 py-2.5 bg-background resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
               </div>
-              {initiateError && (
-                <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
-                  ⚠️ {initiateError}
-                </div>
-              )}
-              <div className="flex gap-3 pt-1">
-                <button
-                  onClick={() => { setNewConvoOpen(false); setInitiateError('') }}
-                  className="flex-1 py-2.5 text-sm text-muted-foreground hover:bg-muted rounded-xl border border-border"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleInitiate}
-                  disabled={!newPhone.trim() || !newMsg.trim() || initiating}
-                  className="flex-1 py-2.5 text-sm bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {initiating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  {initiating ? 'Sending...' : 'Send Message'}
-                </button>
-              </div>
+              {initiateError && <p className="text-xs text-red-500 bg-red-50 px-3 py-2 rounded-lg">{initiateError}</p>}
+            </div>
+            <div className="flex gap-2 px-5 pb-5">
+              <button onClick={() => setNewOpen(false)}
+                className="flex-1 py-2.5 text-sm border border-border rounded-xl text-muted-foreground hover:bg-muted">
+                Cancel
+              </button>
+              <button onClick={handleInitiate} disabled={!newPhone.trim() || initiating}
+                className="flex-1 py-2.5 text-sm bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium disabled:opacity-40 flex items-center justify-center gap-2">
+                {initiating ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                Send
+              </button>
             </div>
           </div>
         </div>
       )}
-      {/* ===== LEFT SIDEBAR ===== */}
-      <div className="w-[340px] flex flex-col border-r border-border bg-muted/10">
-        {/* Header */}
-        <div className="px-4 py-3 border-b border-border">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-full bg-emerald-500 flex items-center justify-center">
-                <MessageCircle className="h-4 w-4 text-white" />
-              </div>
+
+      <div className="flex h-[calc(100vh-112px)] overflow-hidden rounded-xl border border-border bg-background">
+
+        {/* ── Sidebar ── */}
+        <div className="w-72 flex flex-col border-r border-border shrink-0">
+          {/* Header */}
+          <div className="px-4 pt-4 pb-3 space-y-3">
+            <div className="flex items-center justify-between">
               <div>
-                <h2 className="font-semibold text-sm text-foreground">WhatsApp Inbox</h2>
-                {unreadCount > 0 && (
-                  <span className="text-xs text-emerald-600">{unreadCount} bot conversations</span>
-                )}
+                <h2 className="font-semibold text-foreground">Chats</h2>
+                {unread > 0 && <p className="text-xs text-muted-foreground">{unread} needs attention</p>}
               </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setNewConvoOpen(true)}
-                className="p-1.5 rounded-lg hover:bg-emerald-50 text-emerald-600"
-                title="Send new message"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-              <button
-                onClick={fetchConversations}
-                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
-                title="Refresh"
-              >
-                <RefreshCw className="h-4 w-4" />
+              <button onClick={() => setNewOpen(true)}
+                className="h-8 w-8 rounded-full bg-emerald-500 hover:bg-emerald-600 flex items-center justify-center transition-colors shadow-sm"
+                title="New message">
+                <Plus className="h-4 w-4 text-white" />
               </button>
             </div>
-          </div>
 
-          {/* Search */}
-          <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search by name or phone..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            />
-          </div>
-
-          {/* Filter tabs */}
-          <div className="flex gap-1">
-            {(['all', 'open', 'qualified', 'booked'] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`flex-1 text-xs py-1.5 rounded-lg font-medium transition-colors capitalize ${
-                  filter === f
-                    ? 'bg-emerald-500 text-white'
-                    : 'text-muted-foreground hover:bg-muted'
-                }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Conversation list */}
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="p-8 text-center text-muted-foreground text-sm">Loading...</div>
-          ) : filtered.length === 0 ? (
-            <div className="p-8 text-center">
-              <MessageCircle className="h-12 w-12 text-muted-foreground/30 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No conversations yet</p>
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <input value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Search…"
+                className="w-full pl-8 pr-3 py-2 text-sm bg-muted/50 rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 placeholder:text-muted-foreground" />
             </div>
-          ) : (
-            filtered.map((conv) => {
-              const last = lastMessage(conv)
-              const isSelected = selected?.id === conv.id
-              return (
-                <button
-                  key={conv.id}
-                  onClick={() => setSelected(conv)}
-                  className={`w-full text-left px-4 py-3 border-b border-border/50 hover:bg-muted/50 transition-colors ${
-                    isSelected ? 'bg-emerald-50 dark:bg-emerald-950/20 border-l-2 border-l-emerald-500' : ''
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    {/* Avatar */}
-                    <div className="relative flex-shrink-0">
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-semibold text-sm">
-                        {(conv.contact?.name || conv.contact?.phone || '?')[0].toUpperCase()}
-                      </div>
-                      {/* Mode badge */}
-                      <span className={`absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full flex items-center justify-center ${
-                        conv.mode === 'bot' ? 'bg-blue-500' : conv.mode === 'human' ? 'bg-emerald-500' : 'bg-gray-400'
-                      }`}>
-                        {conv.mode === 'bot' ? <Bot className="h-2.5 w-2.5 text-white" /> : <User className="h-2.5 w-2.5 text-white" />}
-                      </span>
-                    </div>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-sm font-medium text-foreground truncate">
-                          {conv.contact?.name || conv.contact?.phone || 'Unknown'}
-                        </span>
-                        <span className="text-xs text-muted-foreground flex-shrink-0">
-                          {last ? formatDistanceToNow(new Date(last.created_at), { addSuffix: true }) : ''}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${statusColors[conv.status] || ''}`}>
-                          {conv.status}
-                        </span>
-                        <span className="text-xs text-muted-foreground truncate">
-                          {last?.content?.slice(0, 40) || 'No messages'}
-                        </span>
-                      </div>
-                      {conv.lead_score > 0 && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
-                          <span className="text-xs text-amber-600 font-medium">Score: {conv.lead_score}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+            {/* Filter pills */}
+            <div className="flex gap-1.5">
+              {(['all', 'bot', 'human'] as const).map(f => (
+                <button key={f} onClick={() => setFilter(f)}
+                  className={`flex-1 text-xs py-1.5 rounded-lg font-medium capitalize transition-colors ${
+                    filter === f ? 'bg-emerald-500 text-white' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                  }`}>
+                  {f}
                 </button>
-              )
-            })
-          )}
-        </div>
-      </div>
-
-      {/* ===== CHAT AREA ===== */}
-      {selected ? (
-        <div className="flex-1 flex flex-col">
-          {/* Chat header */}
-          <div className="px-5 py-3 border-b border-border bg-background flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-semibold">
-                {(selected.contact?.name || selected.contact?.phone || '?')[0].toUpperCase()}
-              </div>
-              <div>
-                <p className="font-semibold text-foreground text-sm">
-                  {selected.contact?.name || 'Unknown'}
-                </p>
-                <div className="flex items-center gap-2">
-                  <Phone className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">{selected.contact?.phone}</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${statusColors[selected.status]}`}>
-                    {selected.status}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {/* Lead score */}
-              {selected.lead_score > 0 && (
-                <div className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-lg">
-                  <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                  <span className="text-xs font-semibold text-amber-700">Score: {selected.lead_score}</span>
-                </div>
-              )}
-
-              {/* Confirm appointment */}
-              {selected.status === 'qualified' && (
-                <button
-                  onClick={() => confirmAppointment(selected.contact_id)}
-                  className="flex items-center gap-1.5 text-xs bg-emerald-500 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-600 transition-colors"
-                >
-                  <Calendar className="h-3.5 w-3.5" />
-                  Confirm Booking
-                </button>
-              )}
-
-              {/* Mode toggle */}
-              <button
-                onClick={() => switchMode(selected.id, selected.mode === 'bot' ? 'human' : 'bot')}
-                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors ${
-                  selected.mode === 'bot'
-                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                    : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                }`}
-                title={selected.mode === 'bot' ? 'Switch to Human mode' : 'Switch to Bot mode'}
-              >
-                {selected.mode === 'bot' ? <Bot className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
-                {selected.mode === 'bot' ? 'Bot Active' : 'Human Mode'}
-              </button>
-            </div>
-          </div>
-
-          {/* Answers summary bar */}
-          {selected.answers && Object.keys(selected.answers).length > 0 && (
-            <div className="px-5 py-2 bg-blue-50/50 dark:bg-blue-950/20 border-b border-blue-100 dark:border-blue-900/30 flex gap-4 overflow-x-auto">
-              {Object.entries(selected.answers).map(([key, val]) => (
-                <div key={key} className="flex items-center gap-1 text-xs flex-shrink-0">
-                  <span className="text-blue-500 font-medium capitalize">{key.replace(/_/g, ' ')}:</span>
-                  <span className="text-blue-700">{String(val)}</span>
-                </div>
               ))}
             </div>
-          )}
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-3" style={{ background: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23e8f5e9\' fill-opacity=\'0.4\'%3E%3Ccircle cx=\'30\' cy=\'30\' r=\'2\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}>
-            {messages.map((msg) => {
-              const isOutbound = msg.direction === 'outbound'
-              return (
-                <div key={msg.id} className={`flex ${isOutbound ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm ${
-                    isOutbound
-                      ? 'bg-[#dcf8c6] dark:bg-emerald-800 text-gray-800 dark:text-white rounded-br-sm'
-                      : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-bl-sm'
-                  }`}>
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                    <div className={`flex items-center gap-1 mt-1 ${isOutbound ? 'justify-end' : 'justify-start'}`}>
-                      <span className="text-[10px] text-gray-400">
-                        {format(new Date(msg.created_at), 'HH:mm')}
-                      </span>
-                      {isOutbound && (
-                        msg.status === 'read' ? <CheckCheck className="h-3 w-3 text-blue-500" /> :
-                        msg.status === 'delivered' ? <CheckCheck className="h-3 w-3 text-gray-400" /> :
-                        <Check className="h-3 w-3 text-gray-400" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-            <div ref={messagesEndRef} />
           </div>
 
-          {/* Opted-out warning */}
-          {selected.contact?.opted_out && (
-            <div className="px-5 py-3 bg-red-50 border-t border-red-100 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-red-500" />
-              <span className="text-sm text-red-600">This contact has opted out (STOP). You cannot send messages.</span>
-            </div>
-          )}
+          {/* List */}
+          <div className="flex-1 overflow-y-auto">
+            {loading ? (
+              <div className="p-6 text-center text-xs text-muted-foreground">Loading…</div>
+            ) : filtered.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-sm text-muted-foreground">No conversations yet</p>
+                <button onClick={() => setNewOpen(true)} className="mt-3 text-xs text-emerald-600 hover:underline">
+                  Start one →
+                </button>
+              </div>
+            ) : (
+              filtered.map(conv => {
+                const last = lastMsg(conv)
+                const isActive = selected?.id === conv.id
+                const name = conv.contact?.name || conv.contact?.phone || '?'
+                return (
+                  <button key={conv.id} onClick={() => setSelected(conv)}
+                    className={`w-full text-left px-4 py-3.5 flex items-start gap-3 transition-colors border-b border-border/40 last:border-0 ${
+                      isActive ? 'bg-emerald-50 dark:bg-emerald-950/20' : 'hover:bg-muted/30'
+                    }`}>
+                    <div className="relative shrink-0">
+                      <Avatar name={conv.contact?.name} phone={conv.contact?.phone} size="sm" />
+                      <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-background ${
+                        conv.mode === 'bot' ? 'bg-blue-400' : 'bg-emerald-400'
+                      }`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1 mb-0.5">
+                        <span className="text-sm font-medium text-foreground truncate">{name}</span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">
+                          {last ? formatDistanceToNow(new Date(last.created_at), { addSuffix: false }) : ''}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {last?.content || 'No messages'}
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[conv.status] || 'bg-gray-300'}`} />
+                        <span className={`text-[10px] font-medium capitalize ${STATUS_COLOR[conv.status] || 'text-muted-foreground'}`}>
+                          {conv.status}
+                        </span>
+                        {conv.lead_score > 0 && (
+                          <span className="text-[10px] text-amber-500 font-medium flex items-center gap-0.5">
+                            <Star className="h-2.5 w-2.5 fill-amber-400 stroke-amber-400" />{conv.lead_score}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                )
+              })
+            )}
+          </div>
+        </div>
 
-          {/* Input area */}
-          {!selected.contact?.opted_out && (
-            <div className="px-4 py-3 border-t border-border bg-background">
-              {selected.mode === 'bot' && (
-                <div className="mb-2 flex items-center gap-2 text-xs text-blue-600 bg-blue-50 dark:bg-blue-950/30 px-3 py-1.5 rounded-lg">
-                  <Bot className="h-3.5 w-3.5" />
-                  <span>Bot is active. Your message will switch conversation to Human mode.</span>
+        {/* ── Chat area ── */}
+        {selected ? (
+          <div className="flex-1 flex flex-col min-w-0">
+            {/* Chat header */}
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-border shrink-0">
+              <div className="flex items-center gap-3">
+                <Avatar name={selected.contact?.name} phone={selected.contact?.phone} />
+                <div>
+                  <p className="font-semibold text-foreground text-sm">{selected.contact?.name || selected.contact?.phone}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <Phone className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">{selected.contact?.phone}</span>
+                    <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[selected.status]}`} />
+                    <span className={`text-xs capitalize font-medium ${STATUS_COLOR[selected.status]}`}>{selected.status}</span>
+                  </div>
                 </div>
-              )}
-              <div className="flex gap-2 items-end">
-                <div className="flex-1 bg-muted/50 border border-border rounded-2xl px-4 py-2.5 focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-400">
-                  <textarea
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault()
-                        handleSend()
-                      }
-                    }}
-                    placeholder="Type a message... (Enter to send, Shift+Enter for new line)"
-                    rows={2}
-                    className="w-full bg-transparent text-sm resize-none focus:outline-none text-foreground placeholder:text-muted-foreground"
-                  />
-                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {selected.lead_score > 0 && (
+                  <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1 rounded-full">
+                    <Star className="h-3.5 w-3.5 fill-amber-400 stroke-amber-400" />
+                    <span className="text-xs font-semibold text-amber-700">{selected.lead_score}</span>
+                  </div>
+                )}
+                {selected.status === 'qualified' && (
+                  <button onClick={() => confirmAppt(selected.contact_id)}
+                    className="flex items-center gap-1.5 text-xs bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg transition-colors font-medium">
+                    <Calendar className="h-3.5 w-3.5" /> Book
+                  </button>
+                )}
                 <button
-                  onClick={handleSend}
-                  disabled={!newMessage.trim() || sending}
-                  className="h-10 w-10 rounded-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors flex-shrink-0"
-                >
-                  {sending ? (
-                    <RefreshCw className="h-4 w-4 text-white animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4 text-white" />
-                  )}
+                  onClick={() => switchMode(selected.id, selected.mode === 'bot' ? 'human' : 'bot')}
+                  className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors font-medium ${
+                    selected.mode === 'bot'
+                      ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600'
+                      : 'bg-muted text-muted-foreground'
+                  }`}>
+                  {selected.mode === 'bot' ? <Bot className="h-3.5 w-3.5" /> : <User className="h-3.5 w-3.5" />}
+                  {selected.mode === 'bot' ? 'Bot' : 'Human'}
                 </button>
               </div>
             </div>
-          )}
-        </div>
-      ) : (
-        /* Empty state */
-        <div className="flex-1 flex items-center justify-center bg-muted/5">
-          <div className="text-center">
-            <div className="h-20 w-20 rounded-full bg-emerald-100 dark:bg-emerald-950/30 flex items-center justify-center mx-auto mb-4">
-              <MessageCircle className="h-10 w-10 text-emerald-500" />
+
+            {/* Answers strip */}
+            {selected.answers && Object.keys(selected.answers).length > 0 && (
+              <div className="flex gap-4 px-5 py-2 bg-blue-50/60 dark:bg-blue-950/10 border-b border-blue-100 dark:border-blue-900/20 overflow-x-auto text-xs shrink-0">
+                {Object.entries(selected.answers).map(([k, v]) => (
+                  <span key={k} className="shrink-0">
+                    <span className="text-blue-400 capitalize">{k.replace(/_/g, ' ')}: </span>
+                    <span className="text-blue-700 dark:text-blue-300 font-medium">{String(v)}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2"
+              style={{ background: 'radial-gradient(circle at 20% 80%, hsl(142 40% 97%) 0%, transparent 50%), radial-gradient(circle at 80% 20%, hsl(199 40% 97%) 0%, transparent 50%)' }}>
+              {messages.length === 0 && (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-sm text-muted-foreground">No messages yet</p>
+                </div>
+              )}
+              {messages.map((msg, i) => {
+                const out = msg.direction === 'outbound'
+                const showTime = i === 0 || (new Date(msg.created_at).getTime() - new Date(messages[i - 1].created_at).getTime()) > 5 * 60 * 1000
+                return (
+                  <div key={msg.id}>
+                    {showTime && (
+                      <div className="text-center my-2">
+                        <span className="text-[10px] text-muted-foreground bg-background/80 px-2 py-0.5 rounded-full">
+                          {format(new Date(msg.created_at), 'HH:mm')}
+                        </span>
+                      </div>
+                    )}
+                    <div className={`flex ${out ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[72%] px-3.5 py-2.5 rounded-2xl text-sm shadow-sm ${
+                        out
+                          ? 'bg-emerald-500 text-white rounded-br-sm'
+                          : 'bg-white dark:bg-gray-800 text-foreground rounded-bl-sm border border-border/50'
+                      }`}>
+                        <p className="leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
+                        <div className={`flex items-center gap-1 mt-1 ${out ? 'justify-end' : 'justify-start'}`}>
+                          {!showTime && (
+                            <span className={`text-[10px] ${out ? 'text-emerald-100' : 'text-muted-foreground'}`}>
+                              {format(new Date(msg.created_at), 'HH:mm')}
+                            </span>
+                          )}
+                          {out && (
+                            msg.status === 'read' ? <CheckCheck className="h-3 w-3 text-blue-200" /> :
+                            msg.status === 'delivered' ? <CheckCheck className="h-3 w-3 text-emerald-100" /> :
+                            <Check className="h-3 w-3 text-emerald-100" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+              <div ref={bottomRef} />
             </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">Select a conversation</h3>
-            <p className="text-sm text-muted-foreground max-w-xs">
-              Choose a conversation from the left to view messages and respond to customers.
-            </p>
+
+            {/* Opted out */}
+            {selected.contact?.opted_out ? (
+              <div className="px-5 py-3 bg-red-50 dark:bg-red-950/20 border-t border-red-100 text-sm text-red-600 text-center">
+                🚫 This contact sent STOP — messaging is disabled.
+              </div>
+            ) : (
+              <div className="px-4 pb-4 pt-3 border-t border-border shrink-0">
+                {selected.mode === 'bot' && (
+                  <p className="text-xs text-blue-500 mb-2 flex items-center gap-1.5">
+                    <Bot className="h-3.5 w-3.5" />
+                    Bot is active. Sending will switch to human mode.
+                  </p>
+                )}
+                <div className="flex items-end gap-2">
+                  <div className="flex-1 bg-muted/40 rounded-2xl px-4 py-2.5 border border-border/60 focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-500/10 transition-all">
+                    <textarea value={draft} onChange={e => setDraft(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
+                      placeholder="Type a message…" rows={1}
+                      className="w-full bg-transparent text-sm resize-none focus:outline-none text-foreground placeholder:text-muted-foreground max-h-32 overflow-y-auto"
+                      style={{ minHeight: '24px' }}
+                    />
+                  </div>
+                  <button onClick={handleSend} disabled={!draft.trim() || sending}
+                    className="h-10 w-10 rounded-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-30 flex items-center justify-center transition-colors shadow-sm shrink-0">
+                    {sending ? <RefreshCw className="h-4 w-4 text-white animate-spin" /> : <Send className="h-4 w-4 text-white" />}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
-    </div>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+            <div className="h-16 w-16 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center mb-4">
+              <Zap className="h-8 w-8 text-emerald-500" />
+            </div>
+            <h3 className="font-semibold text-foreground mb-1">Select a conversation</h3>
+            <p className="text-sm text-muted-foreground max-w-xs mb-5">
+              Pick a chat from the left or start a new conversation with any WhatsApp number.
+            </p>
+            <button onClick={() => setNewOpen(true)}
+              className="flex items-center gap-2 text-sm bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-medium transition-colors">
+              <Plus className="h-4 w-4" /> New Message
+            </button>
+          </div>
+        )}
+      </div>
+    </>
   )
 }
