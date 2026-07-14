@@ -26,12 +26,18 @@ import {
   Moon,
   Sun,
   BarChart3,
+  MessageCircle,
+  Workflow,
 } from 'lucide-react'
 
 const navItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'editor', 'support'] },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingCart, roles: ['admin', 'editor', 'support'] },
   { href: '/admin/bookings', label: 'Bookings', icon: CalendarDays, roles: ['admin', 'editor', 'support'] },
+  // WhatsApp CRM
+  { href: '/admin/whatsapp', label: 'WA Inbox', icon: MessageCircle, roles: ['admin', 'editor', 'support'] },
+  { href: '/admin/whatsapp/appointments', label: 'WA Bookings', icon: CalendarDays, roles: ['admin', 'editor', 'support'] },
+  { href: '/admin/whatsapp/flows', label: 'Flow Builder', icon: Workflow, roles: ['admin', 'editor'] },
   { href: '/admin/products', label: 'Products', icon: Package, roles: ['admin', 'editor'] },
   { href: '/admin/services', label: 'Services', icon: BookOpen, roles: ['admin', 'editor'] },
   { href: '/admin/categories', label: 'Categories', icon: FolderOpen, roles: ['admin', 'editor'] },
